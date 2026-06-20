@@ -1,13 +1,25 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
+const MAX_WEAPONS = 14;
+
+const TIERS = {
+  common: { name: 'Common', color: '#cbbd9b', attackBonus: 0, dropWeight: 66, salvage: 3, upgradeGold: 10, upgradeJunk: 4 },
+  unusual: { name: 'Unusual', color: '#7ee081', attackBonus: 2, dropWeight: 24, salvage: 7, upgradeGold: 16, upgradeJunk: 7 },
+  rare: { name: 'Rare', color: '#77b7ff', attackBonus: 5, dropWeight: 8, salvage: 14, upgradeGold: 26, upgradeJunk: 11 },
+  epic: { name: 'Epic', color: '#d98bff', attackBonus: 9, dropWeight: 2, salvage: 28, upgradeGold: 42, upgradeJunk: 18 }
+};
 
 const ZONES = [
   {
     id: 'backyard',
     name: 'Backyard of Unfair Bugs',
+    theme: 'Suburban grass, rude insects, and suspicious garden junk.',
     unlockLevel: 1,
+    palette: { sky: '#25345f', ground: '#2f6f5f', path: '#214c43', enemy: '#ff6b7a', accent: '#7ee081' },
+    dropChance: 0.13,
+    weaponPool: ['cracked-bat', 'yo-yo', 'frying-pan', 'garden-rake', 'rubber-chicken'],
     enemies: [
       { name: 'Suspicious Ant', hp: 14, attack: 2, exp: 4, gold: 2, junk: 1 },
       { name: 'Tiny Goblin Accountant', hp: 20, attack: 3, exp: 6, gold: 4, junk: 1 },
@@ -17,24 +29,77 @@ const ZONES = [
   {
     id: 'mall',
     name: 'Abandoned Mall Arcade',
+    theme: 'Neon carpet, broken prize machines, and snacks with unfinished business.',
     unlockLevel: 4,
+    palette: { sky: '#211a3d', ground: '#563071', path: '#3d2358', enemy: '#77b7ff', accent: '#ffcc5c' },
+    dropChance: 0.17,
+    weaponPool: ['plastic-sword', 'bottle-rocket', 'arcade-stool', 'soda-straw', 'laser-pointer'],
     enemies: [
       { name: 'Coin-Operated Gremlin', hp: 42, attack: 6, exp: 15, gold: 10, junk: 3 },
       { name: 'Possessed Prize Claw', hp: 54, attack: 7, exp: 19, gold: 13, junk: 3 },
       { name: 'Expired Soda Elemental', hp: 68, attack: 9, exp: 25, gold: 17, junk: 4 }
     ]
+  },
+  {
+    id: 'office',
+    name: 'Haunted Office Park',
+    theme: 'Cubicles, cursed printers, and meetings that should have been emails.',
+    unlockLevel: 8,
+    palette: { sky: '#1b2632', ground: '#596273', path: '#343c49', enemy: '#d98bff', accent: '#b7dcff' },
+    dropChance: 0.2,
+    weaponPool: ['stapler', 'keyboard', 'rolling-chair', 'coffee-mug', 'briefcase'],
+    enemies: [
+      { name: 'Passive-Aggressive Printer', hp: 92, attack: 12, exp: 42, gold: 26, junk: 6 },
+      { name: 'Spreadsheet Wraith', hp: 112, attack: 14, exp: 54, gold: 31, junk: 7 },
+      { name: 'Meeting Ooze', hp: 138, attack: 16, exp: 68, gold: 38, junk: 8 }
+    ]
   }
 ];
 
+const WEAPON_BLUEPRINTS = {
+  'cracked-bat': { name: 'Cracked Tee-Ball Bat', attack: 4, note: 'Reliable, if embarrassing.' },
+  'yo-yo': { name: 'Yo-Yo of Mild Regret', attack: 3, note: 'Sometimes returns. Emotionally, mostly.' },
+  'frying-pan': { name: 'Bent Frying Pan', attack: 5, note: 'Breakfast adjacent.' },
+  'garden-rake': { name: 'Backyard Rake of Consequences', attack: 6, note: 'Step carefully.' },
+  'rubber-chicken': { name: 'Squeaky Rubber Chicken', attack: 4, note: 'Morale damage counts.' },
+  'plastic-sword': { name: 'Plastic Sword From The Mall', attack: 8, note: 'Technically heroic.' },
+  'bottle-rocket': { name: 'Lucky Bottle Rocket', attack: 10, note: 'OSHA is looking away.' },
+  'arcade-stool': { name: 'Wobbly Arcade Stool', attack: 9, note: 'Great against shins.' },
+  'soda-straw': { name: 'Curly Soda Straw', attack: 7, note: 'Absurd reach.' },
+  'laser-pointer': { name: 'Laser Pointer of Distraction', attack: 8, note: 'Critical against cats and managers.' },
+  'stapler': { name: 'Red Stapler of Quiet Rage', attack: 13, note: 'Do not borrow.' },
+  'keyboard': { name: 'Clicky Keyboard Flail', attack: 14, note: 'Deals bonus noise.' },
+  'rolling-chair': { name: 'Rolling Chair Lance', attack: 15, note: 'A majestic office joust.' },
+  'coffee-mug': { name: 'World’s Okayest Mug', attack: 12, note: 'Warm, bitter, dangerous.' },
+  'briefcase': { name: 'Suspiciously Heavy Briefcase', attack: 16, note: 'Full of quarterly reports.' }
+};
+
 const STARTER_WEAPONS = [
-  { id: 'cracked-bat', name: 'Cracked Tee-Ball Bat', attack: 4, level: 1, note: 'Reliable, if embarrassing.' },
-  { id: 'yo-yo', name: 'Yo-Yo of Mild Regret', attack: 3, level: 1, note: 'Sometimes returns. Emotionally, mostly.' },
-  { id: 'frying-pan', name: 'Bent Frying Pan', attack: 5, level: 1, note: 'Breakfast adjacent.' }
+  createWeapon('cracked-bat', 'common', 'starter-cracked-bat'),
+  createWeapon('yo-yo', 'common', 'starter-yo-yo'),
+  createWeapon('frying-pan', 'unusual', 'starter-frying-pan')
 ];
 
 const state = loadGame();
 let scene;
-let autosaveTimer;
+
+function createWeapon(blueprintId, tier = 'common', id = uniqueId(blueprintId)) {
+  const blueprint = WEAPON_BLUEPRINTS[blueprintId] || WEAPON_BLUEPRINTS['cracked-bat'];
+  const tierData = TIERS[tier] || TIERS.common;
+  return {
+    id,
+    blueprintId,
+    tier,
+    name: blueprint.name,
+    attack: blueprint.attack + tierData.attackBonus,
+    level: 1,
+    note: blueprint.note
+  };
+}
+
+function uniqueId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
 
 function freshSave() {
   return {
@@ -52,9 +117,24 @@ function freshSave() {
     currentEnemy: null,
     enemyHp: 0,
     weapons: structuredClone(STARTER_WEAPONS),
-    equippedWeaponId: 'cracked-bat',
+    equippedWeaponId: 'starter-cracked-bat',
     log: ['Welcome to Menu Quest. Pick Battle when you are ready to bonk.'],
     lastSavedAt: Date.now()
+  };
+}
+
+function normalizeWeapon(weapon, index) {
+  const blueprintId = weapon.blueprintId || weapon.id || 'cracked-bat';
+  const blueprint = WEAPON_BLUEPRINTS[blueprintId] || { name: weapon.name || 'Mystery Bonker', attack: weapon.attack || 3, note: weapon.note || 'Probably safe.' };
+  const tier = weapon.tier && TIERS[weapon.tier] ? weapon.tier : 'common';
+  return {
+    id: weapon.id && !WEAPON_BLUEPRINTS[weapon.id] ? weapon.id : `${blueprintId}-legacy-${index}`,
+    blueprintId,
+    tier,
+    name: weapon.name || blueprint.name,
+    attack: Number.isFinite(weapon.attack) ? weapon.attack : blueprint.attack + TIERS[tier].attackBonus,
+    level: Number.isFinite(weapon.level) ? weapon.level : 1,
+    note: weapon.note || blueprint.note
   };
 }
 
@@ -64,9 +144,13 @@ function loadGame() {
 
   try {
     const loaded = JSON.parse(raw);
-    const merged = { ...freshSave(), ...loaded };
-    merged.weapons = Array.isArray(loaded.weapons) && loaded.weapons.length ? loaded.weapons : structuredClone(STARTER_WEAPONS);
+    const merged = { ...freshSave(), ...loaded, version: SAVE_VERSION };
+    merged.weapons = Array.isArray(loaded.weapons) && loaded.weapons.length
+      ? loaded.weapons.map(normalizeWeapon).slice(0, MAX_WEAPONS)
+      : structuredClone(STARTER_WEAPONS);
+    if (!merged.weapons.some(w => w.id === merged.equippedWeaponId)) merged.equippedWeaponId = merged.weapons[0].id;
     merged.log = Array.isArray(loaded.log) ? loaded.log.slice(0, 12) : [];
+    if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
     return merged;
   } catch {
@@ -113,7 +197,37 @@ function spawnEnemy(targetState = state, announce = true) {
   if (announce) addLog(`A ${enemy.name} shuffles into bonking range.`);
 }
 
+function pickTier() {
+  const total = Object.values(TIERS).reduce((sum, tier) => sum + tier.dropWeight, 0);
+  let roll = Math.random() * total;
+  for (const [key, tier] of Object.entries(TIERS)) {
+    roll -= tier.dropWeight;
+    if (roll <= 0) return key;
+  }
+  return 'common';
+}
+
+function maybeDropWeapon(zone, multiplier = 1) {
+  if (Math.random() > zone.dropChance * multiplier) return;
+  const blueprintId = zone.weaponPool[Math.floor(Math.random() * zone.weaponPool.length)];
+  const tier = pickTier();
+  const weapon = createWeapon(blueprintId, tier);
+  const tierName = TIERS[tier].name;
+
+  if (state.weapons.length >= MAX_WEAPONS) {
+    const salvage = salvageValue(weapon);
+    state.junk += salvage.junk;
+    state.gold += salvage.gold;
+    addLog(`Inventory full: auto-salvaged ${tierName} ${weapon.name} for +${salvage.junk} junk, +${salvage.gold} gold.`);
+    return;
+  }
+
+  state.weapons.push(weapon);
+  addLog(`Found weapon: ${tierName} ${weapon.name} (+${weapon.attack} attack).`);
+}
+
 function gainRewards(enemy, multiplier = 1) {
+  const zone = currentZone();
   const exp = Math.floor(enemy.exp * multiplier);
   const gold = Math.floor(enemy.gold * multiplier);
   const junk = Math.max(0, Math.floor(enemy.junk * multiplier));
@@ -122,6 +236,7 @@ function gainRewards(enemy, multiplier = 1) {
   state.junk += junk;
   state.kills += 1;
   addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
+  maybeDropWeapon(zone, multiplier);
   checkLevelUps();
 }
 
@@ -199,6 +314,19 @@ function stat(label, value) {
   return `<div class="stat"><b>${label}</b><span>${value}</span></div>`;
 }
 
+function tierBadge(weapon) {
+  const tier = TIERS[weapon.tier] || TIERS.common;
+  return `<span class="tier-badge" style="--tier:${tier.color}">${tier.name}</span>`;
+}
+
+function salvageValue(weapon) {
+  const tier = TIERS[weapon.tier] || TIERS.common;
+  return {
+    junk: tier.salvage + weapon.level * 2,
+    gold: Math.floor((tier.salvage + weapon.attack) / 2)
+  };
+}
+
 function render() {
   const enemy = state.currentEnemy || { name: 'No enemy', hp: 1 };
   const weapon = equippedWeapon();
@@ -208,14 +336,14 @@ function render() {
 
   document.querySelector('#toggleBattle').textContent = state.battleRunning ? 'Pause battle' : 'Start battle';
   document.querySelector('#battleSummary').textContent = state.battleRunning
-    ? `Fighting in ${zone.name}. You can leave this screen; the battle keeps running.`
-    : 'Battle is paused. Start it when you want the tiny hero farming again.';
+    ? `Fighting in ${zone.name}. ${zone.theme}`
+    : `Battle is paused. Current zone: ${zone.name} — ${zone.theme}`;
 
   document.querySelector('#battleStats').innerHTML = [
     stat('Hero HP', hpText),
     stat('Enemy', enemyText),
     stat('Attack', totalAttack()),
-    stat('Zone', zone.name)
+    stat('Zone theme', zone.theme)
   ].join('');
 
   document.querySelector('#characterStats').innerHTML = [
@@ -224,30 +352,41 @@ function render() {
     stat('HP', hpText),
     stat('Base attack', state.baseAttack),
     stat('Kills', state.kills),
-    stat('Equipped', `${weapon.name} +${weapon.attack}`)
+    stat('Equipped', `${TIERS[weapon.tier].name} ${weapon.name} +${weapon.attack}`)
   ].join('');
 
   document.querySelector('#inventoryStats').innerHTML = [
     stat('Gold', state.gold),
     stat('Junk', state.junk),
-    stat('Weapons owned', state.weapons.length),
+    stat('Weapon space', `${state.weapons.length}/${MAX_WEAPONS}`),
     stat('Offline cap', '8 hours')
   ].join('');
 
-  document.querySelector('#weaponList').innerHTML = state.weapons.map(w => `
-    <div class="weapon-card">
-      <div><strong>${w.name} Lv.${w.level}</strong><small>+${w.attack} attack · ${w.note}${w.id === state.equippedWeaponId ? ' · equipped' : ''}</small></div>
-      <button data-equip="${w.id}" ${w.id === state.equippedWeaponId ? 'disabled' : ''}>Equip</button>
-    </div>`).join('');
+  document.querySelector('#weaponList').innerHTML = state.weapons.map(w => {
+    const equipped = w.id === state.equippedWeaponId;
+    const salvage = salvageValue(w);
+    return `
+      <div class="weapon-card ${equipped ? 'equipped' : ''}">
+        <div>
+          <strong>${tierBadge(w)} ${w.name} Lv.${w.level}</strong>
+          <small>+${w.attack} attack · ${w.note}${equipped ? ' · equipped' : ''}</small>
+          <small>Salvage value: ${salvage.junk} junk + ${salvage.gold} gold</small>
+        </div>
+        <div class="weapon-actions">
+          <button data-equip="${w.id}" ${equipped ? 'disabled' : ''}>Equip</button>
+          <button class="secondary" data-salvage="${w.id}" ${equipped ? 'disabled title="Equip another weapon first"' : ''}>Salvage</button>
+        </div>
+      </div>`;
+  }).join('');
 
   const upgradeCost = currentUpgradeCost();
-  document.querySelector('#craftingHint').textContent = `Cost: ${upgradeCost.gold} gold + ${upgradeCost.junk} junk. Equipped: ${weapon.name}.`;
+  document.querySelector('#craftingHint').textContent = `Cost: ${upgradeCost.gold} gold + ${upgradeCost.junk} junk. Higher-tier weapons cost more, but salvage feeds upgrades.`;
   document.querySelector('#upgradeWeapon').disabled = state.gold < upgradeCost.gold || state.junk < upgradeCost.junk;
 
   document.querySelector('#combatLog').innerHTML = state.log.map(item => `<li>${item}</li>`).join('');
 
   const zoneSelect = document.querySelector('#zoneSelect');
-  const options = unlockedZones().map(z => `<option value="${z.id}" ${z.id === state.selectedZone ? 'selected' : ''}>${z.name}</option>`).join('');
+  const options = unlockedZones().map(z => `<option value="${z.id}" ${z.id === state.selectedZone ? 'selected' : ''}>${z.name} · Lv.${z.unlockLevel}+</option>`).join('');
   if (zoneSelect.innerHTML !== options) zoneSelect.innerHTML = options;
 
   if (scene) scene.syncFromState(state, totalAttack());
@@ -255,7 +394,21 @@ function render() {
 
 function currentUpgradeCost() {
   const weapon = equippedWeapon();
-  return { gold: 12 * weapon.level, junk: 4 * weapon.level };
+  const tier = TIERS[weapon.tier] || TIERS.common;
+  return {
+    gold: tier.upgradeGold * weapon.level,
+    junk: tier.upgradeJunk * weapon.level
+  };
+}
+
+function salvageWeapon(id) {
+  const weapon = state.weapons.find(w => w.id === id);
+  if (!weapon || weapon.id === state.equippedWeaponId || state.weapons.length <= 1) return;
+  const value = salvageValue(weapon);
+  state.gold += value.gold;
+  state.junk += value.junk;
+  state.weapons = state.weapons.filter(w => w.id !== id);
+  addLog(`Salvaged ${TIERS[weapon.tier].name} ${weapon.name}: +${value.junk} junk, +${value.gold} gold.`);
 }
 
 function bindUi() {
@@ -287,10 +440,13 @@ function bindUi() {
   });
 
   document.querySelector('#weaponList').addEventListener('click', event => {
-    const id = event.target.dataset.equip;
-    if (!id) return;
-    state.equippedWeaponId = id;
-    addLog(`Equipped ${equippedWeapon().name}.`);
+    const equipId = event.target.dataset.equip;
+    const salvageId = event.target.dataset.salvage;
+    if (equipId) {
+      state.equippedWeaponId = equipId;
+      addLog(`Equipped ${TIERS[equippedWeapon().tier].name} ${equippedWeapon().name}.`);
+    }
+    if (salvageId) salvageWeapon(salvageId);
     saveGame();
     render();
   });
@@ -302,8 +458,8 @@ function bindUi() {
     state.gold -= cost.gold;
     state.junk -= cost.junk;
     weapon.level += 1;
-    weapon.attack += 2;
-    addLog(`${weapon.name} upgraded to Lv.${weapon.level}. It looks slightly more threatening.`);
+    weapon.attack += weapon.tier === 'epic' ? 4 : weapon.tier === 'rare' ? 3 : 2;
+    addLog(`${TIERS[weapon.tier].name} ${weapon.name} upgraded to Lv.${weapon.level}.`);
     saveGame();
     render();
   });
@@ -323,9 +479,12 @@ class BattleScene extends Phaser.Scene {
 
   create() {
     scene = this;
-    this.cameras.main.setBackgroundColor('#171426');
-    this.add.rectangle(360, 405, 720, 150, 0x2f6f5f).setOrigin(0.5);
-    this.add.rectangle(360, 455, 720, 80, 0x214c43).setOrigin(0.5);
+    this.sky = this.add.rectangle(360, 270, 720, 540, 0x171426).setOrigin(0.5);
+    this.ground = this.add.rectangle(360, 405, 720, 150, 0x2f6f5f).setOrigin(0.5);
+    this.path = this.add.rectangle(360, 455, 720, 80, 0x214c43).setOrigin(0.5);
+    this.moon = this.add.circle(620, 80, 34, 0xffcc5c, 0.9);
+    this.propA = this.add.rectangle(90, 345, 38, 82, 0x7ee081).setOrigin(0.5).setStrokeStyle(3, 0x132118);
+    this.propB = this.add.rectangle(650, 360, 52, 58, 0xffcc5c).setOrigin(0.5).setStrokeStyle(3, 0x432857);
     this.add.text(28, 26, 'Menu Quest', { fontFamily: 'monospace', fontSize: '28px', color: '#ffcc5c', stroke: '#432857', strokeThickness: 4 });
     this.zoneText = this.add.text(28, 66, '', { fontFamily: 'monospace', fontSize: '16px', color: '#cbbd9b' });
 
@@ -348,8 +507,16 @@ class BattleScene extends Phaser.Scene {
 
   syncFromState(gameState, attack) {
     if (!this.zoneText) return;
+    const zone = currentZone();
     const enemy = gameState.currentEnemy || { name: 'No enemy', hp: 1 };
-    this.zoneText.setText(currentZone().name);
+    this.cameras.main.setBackgroundColor(zone.palette.sky);
+    this.sky.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.sky).color;
+    this.ground.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.ground).color;
+    this.path.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.path).color;
+    this.enemyBody.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.enemy).color;
+    this.propA.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.accent).color;
+    this.propB.fillColor = Phaser.Display.Color.HexStringToColor(zone.palette.enemy).color;
+    this.zoneText.setText(`${zone.name} — ${zone.theme}`);
     this.enemyName.setText(enemy.name);
     this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}   HP ${gameState.hp}/${gameState.maxHp}   ATK ${attack}   LV ${gameState.level}`);
     const danger = Math.max(0.25, gameState.enemyHp / enemy.hp);
@@ -362,6 +529,7 @@ class BattleScene extends Phaser.Scene {
     if (state.battleRunning) {
       this.hero.x = 180 + Math.sin(time / 140) * 5;
       this.enemy.x = 540 + Math.sin(time / 180) * 4;
+      this.moon.y = 80 + Math.sin(time / 700) * 6;
     }
   }
 }
@@ -384,7 +552,7 @@ bindUi();
 startPhaser();
 render();
 saveGame();
-autosaveTimer = setInterval(() => {
+setInterval(() => {
   battleTick();
   saveGame();
   render();
