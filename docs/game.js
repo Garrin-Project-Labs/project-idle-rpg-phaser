@@ -605,111 +605,231 @@ class BattleScene extends Phaser.Scene {
 
   create() {
     scene = this;
-    this.sky = this.add.rectangle(360, 270, 720, 540, 0x171426).setOrigin(0.5);
-    this.ground = this.add.rectangle(360, 405, 720, 150, 0x2f6f5f).setOrigin(0.5);
-    this.path = this.add.rectangle(360, 455, 720, 80, 0x214c43).setOrigin(0.5);
-    this.moon = this.add.circle(620, 80, 34, 0xffcc5c, 0.9);
-    this.propA = this.add.rectangle(90, 345, 38, 82, 0x7ee081).setOrigin(0.5).setStrokeStyle(3, 0x132118);
-    this.propB = this.add.rectangle(650, 360, 52, 58, 0xffcc5c).setOrigin(0.5).setStrokeStyle(3, 0x432857);
-    this.add.text(28, 26, 'Menu Quest', { fontFamily: 'monospace', fontSize: '28px', color: '#ffcc5c', stroke: '#432857', strokeThickness: 4 });
-    this.zoneText = this.add.text(28, 66, '', { fontFamily: 'monospace', fontSize: '16px', color: '#cbbd9b', wordWrap: { width: 650 } });
+    this.backdrop = this.add.graphics();
+    this.midground = this.add.graphics();
+    this.foreground = this.add.graphics();
+    this.decor = this.add.container(0, 0);
 
-    this.hero = this.add.container(180, 330);
-    this.tierGlow = this.add.circle(0, -28, 82, 0xcbbd9b, 0.16);
-    this.body = this.add.rectangle(0, 0, 54, 72, 0x7ee081).setStrokeStyle(4, 0x132118);
+    this.titleText = this.add.text(28, 24, 'Menu Quest', {
+      fontFamily: 'Georgia, serif', fontSize: '32px', color: '#ffefb0',
+      stroke: '#241634', strokeThickness: 5, shadow: { offsetX: 2, offsetY: 3, color: '#000000', blur: 2, fill: true }
+    });
+    this.zoneText = this.add.text(30, 66, '', {
+      fontFamily: 'Georgia, serif', fontSize: '15px', color: '#f7dfb0',
+      wordWrap: { width: 650 }, lineSpacing: 3
+    });
+
+    this.hero = this.add.container(178, 330);
+    this.heroShadow = this.add.ellipse(0, 58, 112, 24, 0x000000, 0.28);
+    this.tierGlow = this.add.circle(0, -22, 92, 0xcbbd9b, 0.16);
+    this.heroBody = this.add.container(0, 0);
     this.armorArt = this.add.container(0, 0);
-    this.head = this.add.circle(0, -50, 25, 0xffd29d).setStrokeStyle(4, 0x432857);
-    this.weaponArt = this.add.container(42, -6);
-    this.hero.add([this.tierGlow, this.body, this.armorArt, this.head, this.weaponArt, this.add.text(-31, -104, 'YOU', { fontFamily: 'monospace', fontSize: '16px', color: '#f8f0d8' })]);
+    this.weaponArt = this.add.container(38, -20);
+    this.nameTag = this.add.text(-28, -118, 'YOU', { fontFamily: 'monospace', fontSize: '14px', color: '#fff4d0', stroke: '#241634', strokeThickness: 3 });
+    this.hero.add([this.heroShadow, this.tierGlow, this.heroBody, this.armorArt, this.weaponArt, this.nameTag]);
+    this.rebuildHeroBody();
 
     this.enemy = this.add.container(540, 320);
-    this.enemyGlow = this.add.circle(0, 0, 68, 0xff6b7a, 0.12);
-    this.enemyBody = this.add.rectangle(0, 0, 80, 70, 0xff6b7a).setStrokeStyle(4, 0x432857);
-    this.enemyEyeA = this.add.circle(-18, -12, 7, 0xf8f0d8);
-    this.enemyEyeB = this.add.circle(18, -12, 7, 0xf8f0d8);
-    this.enemy.add([this.enemyGlow, this.enemyBody, this.enemyEyeA, this.enemyEyeB]);
-    this.enemyName = this.add.text(430, 218, '', { fontFamily: 'monospace', fontSize: '18px', color: '#f8f0d8', align: 'center', wordWrap: { width: 220 } });
+    this.enemyShadow = this.add.ellipse(0, 62, 130, 26, 0x000000, 0.3);
+    this.enemyGlow = this.add.circle(0, 2, 82, 0xff6b7a, 0.14);
+    this.enemyArt = this.add.container(0, 0);
+    this.enemy.add([this.enemyShadow, this.enemyGlow, this.enemyArt]);
+    this.enemyName = this.add.text(420, 205, '', {
+      fontFamily: 'Georgia, serif', fontSize: '18px', color: '#fff4d0', align: 'center',
+      stroke: '#241634', strokeThickness: 4, wordWrap: { width: 240 }
+    });
 
-    this.statusText = this.add.text(28, 500, '', { fontFamily: 'monospace', fontSize: '18px', color: '#f8f0d8' });
+    this.statusText = this.add.text(28, 500, '', { fontFamily: 'monospace', fontSize: '17px', color: '#f8f0d8', stroke: '#241634', strokeThickness: 3 });
     this.syncFromState(state, totalAttack(), totalDefense());
+  }
+
+  drawScenery(zone) {
+    const p = zone.palette;
+    this.backdrop.clear();
+    this.midground.clear();
+    this.foreground.clear();
+    this.decor.removeAll(true);
+
+    this.backdrop.fillGradientStyle(colorNumber(p.sky), colorNumber(p.sky), 0x120d1d, 0x120d1d, 1);
+    this.backdrop.fillRect(0, 0, 720, 540);
+    this.backdrop.fillStyle(0xffffff, 0.07);
+    for (let i = 0; i < 38; i++) this.backdrop.fillCircle((i * 83) % 720, 24 + ((i * 47) % 210), 1 + (i % 3));
+    this.backdrop.fillStyle(colorNumber(p.accent), 0.82).fillCircle(618, 82, 32);
+    this.backdrop.fillStyle(0xffffff, 0.16).fillCircle(608, 72, 11);
+
+    const hillA = colorNumber(p.path);
+    const hillB = colorNumber(p.ground);
+    this.midground.fillStyle(hillA, 0.76).fillEllipse(250, 390, 560, 150);
+    this.midground.fillStyle(hillB, 0.92).fillEllipse(500, 410, 640, 160);
+    this.midground.fillStyle(colorNumber(p.ground), 1).fillRect(0, 390, 720, 150);
+    this.foreground.fillStyle(colorNumber(p.path), 0.72).fillEllipse(360, 472, 780, 145);
+    this.foreground.fillStyle(0x000000, 0.12).fillEllipse(360, 505, 620, 48);
+
+    if (zone.id === 'backyard') this.drawBackyardProps(p);
+    else if (zone.id === 'mall') this.drawMallProps(p);
+    else this.drawOfficeProps(p);
+  }
+
+  addProp(g) { this.decor.add(g); return g; }
+
+  drawBackyardProps(p) {
+    for (const [x, h] of [[72, 80], [126, 58], [654, 70]]) {
+      const g = this.add.graphics();
+      g.fillStyle(0x5a3924, 1).fillRoundedRect(x - 7, 332 - h, 14, h, 7);
+      g.fillStyle(colorNumber(p.accent), 0.9).fillEllipse(x, 318 - h, 70, 52);
+      g.fillStyle(0xb8f08b, 0.45).fillEllipse(x - 18, 306 - h, 38, 24);
+      this.addProp(g);
+    }
+    for (let i = 0; i < 12; i++) {
+      const g = this.add.graphics();
+      const x = 35 + i * 58;
+      g.lineStyle(3, 0x93d66c, 0.8).beginPath().moveTo(x, 424).lineTo(x + 7, 398 - (i % 4) * 5).strokePath();
+      this.addProp(g);
+    }
+  }
+
+  drawMallProps(p) {
+    for (const [x, y, label] of [[86, 295, 'TOKENS'], [635, 286, 'PRIZES']]) {
+      const g = this.add.graphics();
+      g.fillStyle(0x231a3f, 0.95).fillRoundedRect(x - 50, y - 68, 100, 120, 14);
+      g.lineStyle(3, colorNumber(p.accent), 0.9).strokeRoundedRect(x - 50, y - 68, 100, 120, 14);
+      g.fillStyle(colorNumber(p.enemy), 0.5).fillRoundedRect(x - 34, y - 35, 68, 46, 8);
+      this.addProp(g);
+      this.decor.add(this.add.text(x - 34, y - 58, label, { fontFamily: 'monospace', fontSize: '11px', color: '#ffefb0' }));
+    }
+    const carpet = this.add.graphics();
+    for (let i = 0; i < 9; i++) carpet.fillStyle(i % 2 ? 0xffcc5c : 0x77b7ff, 0.25).fillCircle(145 + i * 55, 436 + (i % 3) * 11, 8);
+    this.addProp(carpet);
+  }
+
+  drawOfficeProps(p) {
+    for (const [x, w, h] of [[82, 95, 115], [624, 110, 135]]) {
+      const g = this.add.graphics();
+      g.fillStyle(0x2d3442, 0.95).fillRoundedRect(x - w / 2, 258, w, h, 8);
+      g.lineStyle(2, colorNumber(p.accent), 0.45).strokeRoundedRect(x - w / 2, 258, w, h, 8);
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) g.fillStyle(0xb7dcff, 0.18 + ((r + c) % 2) * 0.18).fillRect(x - w / 2 + 14 + c * 34, 272 + r * 24, 20, 14);
+      this.addProp(g);
+    }
+    const fog = this.add.graphics();
+    fog.fillStyle(0xb7dcff, 0.08).fillEllipse(355, 354, 400, 46);
+    this.addProp(fog);
+  }
+
+  rebuildHeroBody() {
+    this.heroBody.removeAll(true);
+    const g = this.add.graphics();
+    g.fillStyle(0x2b1d32, 0.35).fillEllipse(0, 10, 82, 108);
+    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(-28, -10).curveTo(-64, 0, -58, 42, -24, 36).strokePath();
+    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(30, -12).curveTo(64, 0, 62, 34, 28, 34).strokePath();
+    g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(-17, 34).lineTo(-28, 70).strokePath();
+    g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(17, 34).lineTo(24, 70).strokePath();
+    g.fillStyle(0x2d1834, 1).fillEllipse(-30, 72, 28, 12).fillEllipse(26, 72, 28, 12);
+    g.fillStyle(0xffd29d, 1).fillEllipse(0, -54, 48, 54);
+    g.fillStyle(0x2d1834, 1).fillEllipse(-8, -74, 45, 22).fillEllipse(10, -78, 36, 18);
+    g.fillStyle(0x241634, 1).fillCircle(-10, -56, 3).fillCircle(10, -56, 3);
+    g.lineStyle(2, 0x9b5f62, 1).beginPath().moveTo(-8, -42).quadraticCurveTo(0, -36, 9, -42).strokePath();
+    this.heroBody.add(g);
   }
 
   rebuildWeaponArt(weapon) {
     this.weaponArt.removeAll(true);
     const tierColor = colorNumber(TIERS[weapon.tier].color);
-    this.weaponArt.add(this.add.circle(6, 0, 26, tierColor, 0.18));
-    const stroke = 0x432857;
+    const stroke = 0x241634;
     const art = weapon.art || 'bat';
+    const g = this.add.graphics();
+    g.fillStyle(tierColor, weapon.tier === 'common' ? 0.16 : 0.28).fillCircle(12, 8, 32);
+    g.lineStyle(3, stroke, 1);
+
+    const handle = () => g.lineStyle(6, 0x5b3a27, 1).beginPath().moveTo(-8, 18).lineTo(18, 4).strokePath();
     if (art === 'yo-yo') {
-      this.weaponArt.add(this.add.line(0, 0, -6, -18, 28, 16, 0xf8f0d8).setLineWidth(3));
-      this.weaponArt.add(this.add.circle(34, 20, 14, tierColor).setStrokeStyle(3, stroke));
+      g.lineStyle(3, 0xffefb0, 1).beginPath().moveTo(-8, 10).bezierCurveTo(8, -20, 38, -2, 44, 22).strokePath();
+      g.fillStyle(tierColor, 1).fillCircle(48, 26, 15); g.lineStyle(3, stroke).strokeCircle(48, 26, 15); g.fillStyle(0xffefb0, 0.55).fillCircle(43, 20, 4);
     } else if (art === 'pan') {
-      this.weaponArt.add(this.add.rectangle(8, 0, 58, 10, 0x6b5d73).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.circle(44, -4, 19, tierColor).setStrokeStyle(3, stroke));
+      handle(); g.fillStyle(0x5d6173, 1).fillEllipse(44, -5, 44, 34); g.lineStyle(4, stroke).strokeEllipse(44, -5, 44, 34); g.fillStyle(tierColor, 0.45).fillEllipse(38, -11, 20, 10);
     } else if (art === 'rake') {
-      this.weaponArt.add(this.add.rectangle(18, 0, 72, 8, 0x8b5e34).setStrokeStyle(3, stroke));
-      for (let i = 0; i < 4; i++) this.weaponArt.add(this.add.rectangle(55, -18 + i * 10, 7, 24, tierColor).setStrokeStyle(2, stroke));
+      g.lineStyle(6, 0x8b5e34, 1).beginPath().moveTo(-10, 16).lineTo(58, -18).strokePath();
+      g.lineStyle(3, tierColor, 1); for (let i = 0; i < 5; i++) g.beginPath().moveTo(48 + i * 6, -32).lineTo(42 + i * 6, -8).strokePath();
     } else if (art === 'chicken') {
-      this.weaponArt.add(this.add.ellipse(28, 0, 56, 24, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.circle(60, -6, 10, 0xffd29d).setStrokeStyle(2, stroke));
+      handle(); g.fillStyle(tierColor, 1).fillEllipse(42, -4, 58, 26); g.lineStyle(3, stroke).strokeEllipse(42, -4, 58, 26); g.fillStyle(0xffd29d, 1).fillCircle(72, -11, 10); g.fillStyle(0xffcc5c, 1).fillTriangle(80, -12, 93, -8, 80, -4);
     } else if (art === 'sword') {
-      this.weaponArt.add(this.add.triangle(25, 0, -6, 8, 64, 0, -6, -8, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.rectangle(-8, 0, 12, 26, 0xffcc5c).setStrokeStyle(2, stroke));
+      g.fillStyle(tierColor, 1).fillTriangle(2, 8, 78, -24, 26, 30); g.lineStyle(3, stroke).strokeTriangle(2, 8, 78, -24, 26, 30); g.fillStyle(0xffcc5c, 1).fillRoundedRect(-9, 11, 28, 8, 4);
     } else if (art === 'rocket') {
-      this.weaponArt.add(this.add.triangle(58, 0, 28, -15, 74, 0, 28, 15, 0xff6b7a).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.rectangle(22, 0, 38, 20, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.triangle(-4, 0, 16, -10, 16, 10, -10, 18, 0xffcc5c));
+      g.fillStyle(tierColor, 1).fillRoundedRect(8, -16, 54, 26, 14); g.lineStyle(3, stroke).strokeRoundedRect(8, -16, 54, 26, 14); g.fillStyle(0xff6b7a, 1).fillTriangle(60, -16, 86, -3, 60, 10); g.fillStyle(0xffcc5c, 1).fillTriangle(5, -11, -20, 3, 5, 10);
     } else if (art === 'stool' || art === 'chair') {
-      this.weaponArt.add(this.add.rectangle(28, -10, 48, 12, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.rectangle(14, 8, 7, 34, 0x6b5d73));
-      this.weaponArt.add(this.add.rectangle(42, 8, 7, 34, 0x6b5d73));
+      g.fillStyle(tierColor, 1).fillEllipse(36, -16, 58, 20); g.lineStyle(3, stroke).strokeEllipse(36, -16, 58, 20); g.lineStyle(5, 0x5d6173).beginPath().moveTo(18, -5).lineTo(5, 35).moveTo(48, -5).lineTo(62, 35).strokePath();
     } else if (art === 'straw' || art === 'laser') {
-      this.weaponArt.add(this.add.rectangle(26, 0, 78, 7, tierColor).setStrokeStyle(2, stroke));
-      this.weaponArt.add(this.add.circle(68, 0, 8, 0xff6b7a));
+      g.lineStyle(8, tierColor, 1).beginPath().moveTo(-5, 10).quadraticCurveTo(28, -22, 76, -2).strokePath(); g.fillStyle(0xff6b7a, 1).fillCircle(80, -2, 8);
     } else if (art === 'keyboard') {
-      this.weaponArt.add(this.add.rectangle(34, 0, 72, 24, tierColor).setStrokeStyle(3, stroke));
-      for (let i = 0; i < 5; i++) this.weaponArt.add(this.add.rectangle(12 + i * 11, 0, 7, 7, 0xf8f0d8));
+      g.fillStyle(tierColor, 1).fillRoundedRect(8, -18, 76, 30, 7); g.lineStyle(3, stroke).strokeRoundedRect(8, -18, 76, 30, 7); for (let i = 0; i < 10; i++) g.fillStyle(0xffefb0, 0.8).fillRoundedRect(17 + (i % 5) * 12, -11 + Math.floor(i / 5) * 12, 8, 6, 2);
     } else if (art === 'mug') {
-      this.weaponArt.add(this.add.rectangle(26, 0, 36, 30, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.circle(48, 0, 10, 0x000000, 0).setStrokeStyle(4, tierColor));
+      g.fillStyle(tierColor, 1).fillRoundedRect(24, -20, 38, 38, 9); g.lineStyle(3, stroke).strokeRoundedRect(24, -20, 38, 38, 9); g.strokeCircle(66, -1, 12); g.fillStyle(0xffffff, 0.35).fillEllipse(34, -11, 12, 7);
     } else if (art === 'case') {
-      this.weaponArt.add(this.add.rectangle(32, 0, 58, 34, tierColor).setStrokeStyle(3, stroke));
-      this.weaponArt.add(this.add.rectangle(32, -22, 22, 10, 0x6b5d73).setStrokeStyle(2, stroke));
+      g.fillStyle(tierColor, 1).fillRoundedRect(14, -22, 62, 42, 7); g.lineStyle(3, stroke).strokeRoundedRect(14, -22, 62, 42, 7); g.fillStyle(0x5d6173, 1).fillRoundedRect(34, -34, 22, 10, 4);
     } else {
-      this.weaponArt.add(this.add.rectangle(24, 0, 74, 12, tierColor).setStrokeStyle(3, stroke));
+      g.fillStyle(tierColor, 1).fillRoundedRect(8, -8, 78, 18, 9); g.lineStyle(3, stroke).strokeRoundedRect(8, -8, 78, 18, 9); g.fillStyle(0xffefb0, 0.28).fillRoundedRect(30, -15, 32, 6, 3);
     }
+    this.weaponArt.add(g);
   }
 
   rebuildArmorArt(armor) {
     this.armorArt.removeAll(true);
     const tierColor = colorNumber(TIERS[armor.tier].color);
-    const stroke = 0x132118;
+    const stroke = 0x241634;
     const art = armor.art || 'hoodie';
-    this.armorArt.add(this.add.circle(0, 2, 46, tierColor, 0.1));
-    if (art === 'helmet') this.armorArt.add(this.add.arc(0, -55, 29, 190, 350, false, tierColor).setStrokeStyle(10, tierColor));
-    if (art === 'box' || art === 'plate' || art === 'badge') this.armorArt.add(this.add.rectangle(0, 2, 66, 58, tierColor, 0.72).setStrokeStyle(4, stroke));
-    else if (art === 'tie') this.armorArt.add(this.add.triangle(0, 10, -10, -22, 10, -22, 0, 42, tierColor).setStrokeStyle(3, stroke));
-    else if (art === 'mail') {
-      this.armorArt.add(this.add.rectangle(0, 0, 62, 64, tierColor, 0.68).setStrokeStyle(4, stroke));
-      for (let y = -20; y <= 22; y += 14) for (let x = -22; x <= 22; x += 14) this.armorArt.add(this.add.circle(x, y, 5, 0x000000, 0).setStrokeStyle(2, 0xf8f0d8));
-    } else this.armorArt.add(this.add.rectangle(0, 0, 60, 68, tierColor, 0.58).setStrokeStyle(4, stroke));
+    const g = this.add.graphics();
+    g.fillStyle(tierColor, 0.12).fillEllipse(0, 3, 82, 104);
+    g.fillStyle(tierColor, 0.82).fillRoundedRect(-28, -18, 56, 68, 18);
+    g.lineStyle(4, stroke, 1).strokeRoundedRect(-28, -18, 56, 68, 18);
+    g.lineStyle(3, 0xffefb0, 0.45).beginPath().moveTo(-16, -4).quadraticCurveTo(0, 8, 16, -4).strokePath();
+    if (art === 'helmet') { g.fillStyle(tierColor, 1).fillEllipse(0, -58, 58, 30); g.lineStyle(4, stroke).strokeEllipse(0, -58, 58, 30); }
+    else if (art === 'box' || art === 'plate' || art === 'badge') { g.fillStyle(0xffefb0, 0.28).fillRoundedRect(-20, -8, 40, 42, 8); }
+    else if (art === 'tie') { g.fillStyle(0xff6b7a, 0.9).fillTriangle(0, -12, -10, 12, 10, 12).fillTriangle(0, 44, -11, 12, 11, 12); }
+    else if (art === 'mail') { for (let y = -4; y <= 34; y += 12) for (let x = -18; x <= 18; x += 12) g.lineStyle(2, 0xffefb0, 0.55).strokeCircle(x, y, 5); }
+    else if (art === 'jacket' || art === 'vest') { g.lineStyle(5, 0xffefb0, 0.55).beginPath().moveTo(-25, -8).lineTo(0, 24).lineTo(25, -8).strokePath(); }
+    this.armorArt.add(g);
+  }
+
+  rebuildEnemyArt(enemy, zone) {
+    this.enemyArt.removeAll(true);
+    const c = colorNumber(zone.palette.enemy);
+    const accent = colorNumber(zone.palette.accent);
+    const stroke = 0x241634;
+    const g = this.add.graphics();
+    const name = enemy.name || '';
+    g.fillStyle(c, 1);
+    if (name.includes('Printer')) {
+      g.fillRoundedRect(-52, -42, 104, 78, 16); g.lineStyle(4, stroke).strokeRoundedRect(-52, -42, 104, 78, 16); g.fillStyle(0xffefb0, 0.8).fillRoundedRect(-32, -62, 64, 26, 6).fillRoundedRect(-36, 10, 72, 28, 5); g.fillStyle(stroke, 1).fillCircle(-17, -16, 4).fillCircle(17, -16, 4);
+    } else if (name.includes('Claw')) {
+      g.fillEllipse(0, 6, 88, 82); g.lineStyle(4, stroke).strokeEllipse(0, 6, 88, 82); g.lineStyle(8, accent).beginPath().moveTo(-22, -38).quadraticCurveTo(-52, -72, -68, -30).moveTo(22, -38).quadraticCurveTo(52, -72, 68, -30).strokePath(); g.fillStyle(0xffefb0, 1).fillCircle(-15, -6, 8).fillCircle(15, -6, 8);
+    } else if (name.includes('Trash')) {
+      g.fillEllipse(0, 2, 96, 92); g.fillStyle(0x000000, 0.12).fillEllipse(-16, -10, 46, 34); g.lineStyle(4, stroke).strokeEllipse(0, 2, 96, 92); g.fillStyle(0xffefb0, 1).fillCircle(-14, -8, 7).fillCircle(18, -6, 7); g.fillStyle(stroke, 1).fillTriangle(-10, 20, 12, 17, 2, 30);
+    } else if (name.includes('Wraith') || name.includes('Ooze') || name.includes('Elemental')) {
+      g.fillEllipse(0, -4, 88, 74); g.fillTriangle(-43, 12, -20, 62, 0, 20); g.fillTriangle(0, 18, 18, 66, 36, 18); g.lineStyle(4, stroke).strokeEllipse(0, -4, 88, 74); g.fillStyle(0xffefb0, 1).fillCircle(-16, -12, 6).fillCircle(16, -12, 6);
+    } else {
+      g.fillEllipse(0, 0, 90, 78); g.fillCircle(-35, -14, 22); g.fillCircle(34, -10, 18); g.lineStyle(4, stroke).strokeEllipse(0, 0, 90, 78); g.fillStyle(0xffefb0, 1).fillCircle(-16, -10, 8).fillCircle(17, -9, 8); g.fillStyle(stroke, 1).fillCircle(-14, -10, 3).fillCircle(19, -9, 3); g.lineStyle(3, stroke).beginPath().moveTo(-14, 18).quadraticCurveTo(2, 28, 20, 16).strokePath();
+    }
+    g.fillStyle(accent, 0.32).fillCircle(-28, -26, 9).fillCircle(34, 18, 7);
+    this.enemyArt.add(g);
   }
 
   playAttackAnimation(damage) {
     if (!this.hero || !this.enemy) return;
     this.tweens.killTweensOf([this.hero, this.weaponArt, this.enemy]);
-    this.tweens.add({ targets: this.hero, x: 230, duration: 120, yoyo: true, ease: 'Quad.easeOut' });
-    this.tweens.add({ targets: this.weaponArt, angle: -35, scale: 1.25, duration: 100, yoyo: true, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: this.enemy, x: 560, duration: 70, yoyo: true, repeat: 1 });
-    const hit = this.add.text(this.enemy.x - 12, this.enemy.y - 88, `-${damage}`, { fontFamily: 'monospace', fontSize: '24px', color: '#ffcc5c', stroke: '#432857', strokeThickness: 4 });
-    this.tweens.add({ targets: hit, y: hit.y - 34, alpha: 0, duration: 520, onComplete: () => hit.destroy() });
+    this.tweens.add({ targets: this.hero, x: 232, duration: 135, yoyo: true, ease: 'Sine.easeOut' });
+    this.tweens.add({ targets: this.weaponArt, angle: -48, scale: 1.3, duration: 110, yoyo: true, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: this.enemy, x: 565, angle: 4, duration: 70, yoyo: true, repeat: 1 });
+    const slash = this.add.graphics();
+    slash.lineStyle(7, colorNumber(TIERS[equippedWeapon().tier].color), 0.75).beginPath().moveTo(454, 258).quadraticCurveTo(515, 210, 594, 296).strokePath();
+    this.tweens.add({ targets: slash, alpha: 0, scale: 1.18, duration: 220, onComplete: () => slash.destroy() });
+    const hit = this.add.text(this.enemy.x - 12, this.enemy.y - 92, `-${damage}`, { fontFamily: 'Georgia, serif', fontSize: '26px', color: '#ffefb0', stroke: '#241634', strokeThickness: 5 });
+    this.tweens.add({ targets: hit, y: hit.y - 38, alpha: 0, duration: 560, onComplete: () => hit.destroy() });
   }
 
   playEnemyHit(damage) {
     if (!this.hero) return;
-    this.tweens.add({ targets: this.hero, x: 166, duration: 70, yoyo: true, repeat: 1 });
-    const hit = this.add.text(this.hero.x - 28, this.hero.y - 130, `-${damage}`, { fontFamily: 'monospace', fontSize: '18px', color: '#ff6b7a', stroke: '#432857', strokeThickness: 4 });
-    this.tweens.add({ targets: hit, y: hit.y - 24, alpha: 0, duration: 460, onComplete: () => hit.destroy() });
+    this.tweens.add({ targets: this.hero, x: 162, angle: -2, duration: 75, yoyo: true, repeat: 1 });
+    const hit = this.add.text(this.hero.x - 28, this.hero.y - 130, `-${damage}`, { fontFamily: 'Georgia, serif', fontSize: '19px', color: '#ff6b7a', stroke: '#241634', strokeThickness: 4 });
+    this.tweens.add({ targets: hit, y: hit.y - 26, alpha: 0, duration: 480, onComplete: () => hit.destroy() });
   }
 
   syncFromState(gameState, attack, defense) {
@@ -718,19 +838,11 @@ class BattleScene extends Phaser.Scene {
     const weapon = equippedWeapon();
     const armor = equippedArmor();
     const tierColor = colorNumber(TIERS[weapon.tier].color);
-    const armorColor = colorNumber(TIERS[armor.tier].color);
     const enemy = gameState.currentEnemy || { name: 'No enemy', hp: 1 };
-    this.cameras.main.setBackgroundColor(zone.palette.sky);
-    this.sky.fillColor = colorNumber(zone.palette.sky);
-    this.ground.fillColor = colorNumber(zone.palette.ground);
-    this.path.fillColor = colorNumber(zone.palette.path);
-    this.enemyBody.fillColor = colorNumber(zone.palette.enemy);
+    if (this.lastZoneId !== zone.id) { this.drawScenery(zone); this.lastZoneId = zone.id; }
     this.enemyGlow.fillColor = colorNumber(zone.palette.enemy);
-    this.propA.fillColor = colorNumber(zone.palette.accent);
-    this.propB.fillColor = colorNumber(zone.palette.enemy);
     this.tierGlow.fillColor = tierColor;
-    this.tierGlow.setAlpha(weapon.tier === 'common' ? 0.12 : weapon.tier === 'unusual' ? 0.18 : weapon.tier === 'rare' ? 0.25 : 0.34);
-    this.body.fillColor = armorColor;
+    this.tierGlow.setAlpha(weapon.tier === 'common' ? 0.12 : weapon.tier === 'unusual' ? 0.2 : weapon.tier === 'rare' ? 0.3 : 0.42);
     if (this.lastWeaponId !== weapon.id || this.lastWeaponLevel !== weapon.level) {
       this.rebuildWeaponArt(weapon);
       this.lastWeaponId = weapon.id;
@@ -741,22 +853,25 @@ class BattleScene extends Phaser.Scene {
       this.lastArmorId = armor.id;
       this.lastArmorLevel = armor.level;
     }
+    if (this.lastEnemyName !== enemy.name || this.lastEnemyZone !== zone.id) {
+      this.rebuildEnemyArt(enemy, zone);
+      this.lastEnemyName = enemy.name;
+      this.lastEnemyZone = zone.id;
+    }
     this.zoneText.setText(`${zone.name} — ${zone.theme}`);
     this.enemyName.setText(enemy.name);
     this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}   HP ${gameState.hp}/${gameState.maxHp}   ATK ${attack}   DEF ${defense}   LV ${gameState.level}`);
     const danger = Math.max(0.25, gameState.enemyHp / enemy.hp);
-    this.enemy.setScale(0.85 + danger * 0.35);
-    this.enemy.setAlpha(gameState.battleRunning ? 1 : 0.55);
+    this.enemy.setScale(0.86 + danger * 0.28);
+    this.enemy.setAlpha(gameState.battleRunning ? 1 : 0.62);
     this.hero.setAlpha(gameState.hp > 0 ? 1 : 0.45);
   }
 
   update(time) {
-    if (state.battleRunning) {
-      this.hero.y = 330 + Math.sin(time / 160) * 3;
-      this.enemy.x = 540 + Math.sin(time / 180) * 4;
-      this.moon.y = 80 + Math.sin(time / 700) * 6;
-      this.tierGlow.setScale(1 + Math.sin(time / 260) * 0.08);
-    }
+    this.hero.y = 330 + Math.sin(time / 170) * (state.battleRunning ? 4 : 2);
+    this.enemy.x = 540 + Math.sin(time / 210) * (state.battleRunning ? 5 : 2);
+    this.enemy.y = 320 + Math.cos(time / 260) * 2;
+    this.tierGlow.setScale(1 + Math.sin(time / 260) * 0.08);
   }
 }
 
