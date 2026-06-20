@@ -600,6 +600,38 @@ function colorNumber(hex) {
   return Phaser.Display.Color.HexStringToColor(hex).color;
 }
 
+function strokeLine(g, x1, y1, x2, y2) {
+  g.beginPath();
+  g.moveTo(x1, y1);
+  g.lineTo(x2, y2);
+  g.strokePath();
+}
+
+function strokeQuad(g, x1, y1, cx, cy, x2, y2, steps = 10) {
+  g.beginPath();
+  g.moveTo(x1, y1);
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const mt = 1 - t;
+    g.lineTo(mt * mt * x1 + 2 * mt * t * cx + t * t * x2, mt * mt * y1 + 2 * mt * t * cy + t * t * y2);
+  }
+  g.strokePath();
+}
+
+function strokeBezier(g, x1, y1, c1x, c1y, c2x, c2y, x2, y2, steps = 12) {
+  g.beginPath();
+  g.moveTo(x1, y1);
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const mt = 1 - t;
+    g.lineTo(
+      mt ** 3 * x1 + 3 * mt * mt * t * c1x + 3 * mt * t * t * c2x + t ** 3 * x2,
+      mt ** 3 * y1 + 3 * mt * mt * t * c1y + 3 * mt * t * t * c2y + t ** 3 * y2
+    );
+  }
+  g.strokePath();
+}
+
 class BattleScene extends Phaser.Scene {
   constructor() { super('BattleScene'); }
 
@@ -683,7 +715,7 @@ class BattleScene extends Phaser.Scene {
     for (let i = 0; i < 12; i++) {
       const g = this.add.graphics();
       const x = 35 + i * 58;
-      g.lineStyle(3, 0x93d66c, 0.8).beginPath().moveTo(x, 424).lineTo(x + 7, 398 - (i % 4) * 5).strokePath();
+      g.lineStyle(3, 0x93d66c, 0.8); strokeLine(g, x, 424, x + 7, 398 - (i % 4) * 5);
       this.addProp(g);
     }
   }
@@ -719,15 +751,15 @@ class BattleScene extends Phaser.Scene {
     this.heroBody.removeAll(true);
     const g = this.add.graphics();
     g.fillStyle(0x2b1d32, 0.35).fillEllipse(0, 10, 82, 108);
-    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(-28, -10).quadraticCurveTo(-64, 0, -24, 36).strokePath();
-    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(30, -12).quadraticCurveTo(64, 0, 28, 34).strokePath();
-    g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(-17, 34).lineTo(-28, 70).strokePath();
-    g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(17, 34).lineTo(24, 70).strokePath();
+    g.lineStyle(8, 0x432857, 1); strokeQuad(g, -28, -10, -64, 0, -24, 36);
+    g.lineStyle(8, 0x432857, 1); strokeQuad(g, 30, -12, 64, 0, 28, 34);
+    g.lineStyle(9, 0x34213d, 1); strokeLine(g, -17, 34, -28, 70);
+    g.lineStyle(9, 0x34213d, 1); strokeLine(g, 17, 34, 24, 70);
     g.fillStyle(0x2d1834, 1).fillEllipse(-30, 72, 28, 12).fillEllipse(26, 72, 28, 12);
     g.fillStyle(0xffd29d, 1).fillEllipse(0, -54, 48, 54);
     g.fillStyle(0x2d1834, 1).fillEllipse(-8, -74, 45, 22).fillEllipse(10, -78, 36, 18);
     g.fillStyle(0x241634, 1).fillCircle(-10, -56, 3).fillCircle(10, -56, 3);
-    g.lineStyle(2, 0x9b5f62, 1).beginPath().moveTo(-8, -42).quadraticCurveTo(0, -36, 9, -42).strokePath();
+    g.lineStyle(2, 0x9b5f62, 1); strokeQuad(g, -8, -42, 0, -36, 9, -42, 6);
     this.heroBody.add(g);
   }
 
@@ -740,15 +772,15 @@ class BattleScene extends Phaser.Scene {
     g.fillStyle(tierColor, weapon.tier === 'common' ? 0.16 : 0.28).fillCircle(12, 8, 32);
     g.lineStyle(3, stroke, 1);
 
-    const handle = () => g.lineStyle(6, 0x5b3a27, 1).beginPath().moveTo(-8, 18).lineTo(18, 4).strokePath();
+    const handle = () => { g.lineStyle(6, 0x5b3a27, 1); strokeLine(g, -8, 18, 18, 4); };
     if (art === 'yo-yo') {
-      g.lineStyle(3, 0xffefb0, 1).beginPath().moveTo(-8, 10).bezierCurveTo(8, -20, 38, -2, 44, 22).strokePath();
+      g.lineStyle(3, 0xffefb0, 1); strokeBezier(g, -8, 10, 8, -20, 38, -2, 44, 22);
       g.fillStyle(tierColor, 1).fillCircle(48, 26, 15); g.lineStyle(3, stroke).strokeCircle(48, 26, 15); g.fillStyle(0xffefb0, 0.55).fillCircle(43, 20, 4);
     } else if (art === 'pan') {
       handle(); g.fillStyle(0x5d6173, 1).fillEllipse(44, -5, 44, 34); g.lineStyle(4, stroke).strokeEllipse(44, -5, 44, 34); g.fillStyle(tierColor, 0.45).fillEllipse(38, -11, 20, 10);
     } else if (art === 'rake') {
-      g.lineStyle(6, 0x8b5e34, 1).beginPath().moveTo(-10, 16).lineTo(58, -18).strokePath();
-      g.lineStyle(3, tierColor, 1); for (let i = 0; i < 5; i++) g.beginPath().moveTo(48 + i * 6, -32).lineTo(42 + i * 6, -8).strokePath();
+      g.lineStyle(6, 0x8b5e34, 1); strokeLine(g, -10, 16, 58, -18);
+      g.lineStyle(3, tierColor, 1); for (let i = 0; i < 5; i++) strokeLine(g, 48 + i * 6, -32, 42 + i * 6, -8);
     } else if (art === 'chicken') {
       handle(); g.fillStyle(tierColor, 1).fillEllipse(42, -4, 58, 26); g.lineStyle(3, stroke).strokeEllipse(42, -4, 58, 26); g.fillStyle(0xffd29d, 1).fillCircle(72, -11, 10); g.fillStyle(0xffcc5c, 1).fillTriangle(80, -12, 93, -8, 80, -4);
     } else if (art === 'sword') {
@@ -756,9 +788,9 @@ class BattleScene extends Phaser.Scene {
     } else if (art === 'rocket') {
       g.fillStyle(tierColor, 1).fillRoundedRect(8, -16, 54, 26, 14); g.lineStyle(3, stroke).strokeRoundedRect(8, -16, 54, 26, 14); g.fillStyle(0xff6b7a, 1).fillTriangle(60, -16, 86, -3, 60, 10); g.fillStyle(0xffcc5c, 1).fillTriangle(5, -11, -20, 3, 5, 10);
     } else if (art === 'stool' || art === 'chair') {
-      g.fillStyle(tierColor, 1).fillEllipse(36, -16, 58, 20); g.lineStyle(3, stroke).strokeEllipse(36, -16, 58, 20); g.lineStyle(5, 0x5d6173).beginPath().moveTo(18, -5).lineTo(5, 35).moveTo(48, -5).lineTo(62, 35).strokePath();
+      g.fillStyle(tierColor, 1).fillEllipse(36, -16, 58, 20); g.lineStyle(3, stroke).strokeEllipse(36, -16, 58, 20); g.lineStyle(5, 0x5d6173); strokeLine(g, 18, -5, 5, 35); strokeLine(g, 48, -5, 62, 35);
     } else if (art === 'straw' || art === 'laser') {
-      g.lineStyle(8, tierColor, 1).beginPath().moveTo(-5, 10).quadraticCurveTo(28, -22, 76, -2).strokePath(); g.fillStyle(0xff6b7a, 1).fillCircle(80, -2, 8);
+      g.lineStyle(8, tierColor, 1); strokeQuad(g, -5, 10, 28, -22, 76, -2); g.fillStyle(0xff6b7a, 1).fillCircle(80, -2, 8);
     } else if (art === 'keyboard') {
       g.fillStyle(tierColor, 1).fillRoundedRect(8, -18, 76, 30, 7); g.lineStyle(3, stroke).strokeRoundedRect(8, -18, 76, 30, 7); for (let i = 0; i < 10; i++) g.fillStyle(0xffefb0, 0.8).fillRoundedRect(17 + (i % 5) * 12, -11 + Math.floor(i / 5) * 12, 8, 6, 2);
     } else if (art === 'mug') {
@@ -780,12 +812,12 @@ class BattleScene extends Phaser.Scene {
     g.fillStyle(tierColor, 0.12).fillEllipse(0, 3, 82, 104);
     g.fillStyle(tierColor, 0.82).fillRoundedRect(-28, -18, 56, 68, 18);
     g.lineStyle(4, stroke, 1).strokeRoundedRect(-28, -18, 56, 68, 18);
-    g.lineStyle(3, 0xffefb0, 0.45).beginPath().moveTo(-16, -4).quadraticCurveTo(0, 8, 16, -4).strokePath();
+    g.lineStyle(3, 0xffefb0, 0.45); strokeQuad(g, -16, -4, 0, 8, 16, -4, 6);
     if (art === 'helmet') { g.fillStyle(tierColor, 1).fillEllipse(0, -58, 58, 30); g.lineStyle(4, stroke).strokeEllipse(0, -58, 58, 30); }
     else if (art === 'box' || art === 'plate' || art === 'badge') { g.fillStyle(0xffefb0, 0.28).fillRoundedRect(-20, -8, 40, 42, 8); }
     else if (art === 'tie') { g.fillStyle(0xff6b7a, 0.9).fillTriangle(0, -12, -10, 12, 10, 12).fillTriangle(0, 44, -11, 12, 11, 12); }
     else if (art === 'mail') { for (let y = -4; y <= 34; y += 12) for (let x = -18; x <= 18; x += 12) g.lineStyle(2, 0xffefb0, 0.55).strokeCircle(x, y, 5); }
-    else if (art === 'jacket' || art === 'vest') { g.lineStyle(5, 0xffefb0, 0.55).beginPath().moveTo(-25, -8).lineTo(0, 24).lineTo(25, -8).strokePath(); }
+    else if (art === 'jacket' || art === 'vest') { g.lineStyle(5, 0xffefb0, 0.55); g.beginPath(); g.moveTo(-25, -8); g.lineTo(0, 24); g.lineTo(25, -8); g.strokePath(); }
     this.armorArt.add(g);
   }
 
@@ -800,13 +832,13 @@ class BattleScene extends Phaser.Scene {
     if (name.includes('Printer')) {
       g.fillRoundedRect(-52, -42, 104, 78, 16); g.lineStyle(4, stroke).strokeRoundedRect(-52, -42, 104, 78, 16); g.fillStyle(0xffefb0, 0.8).fillRoundedRect(-32, -62, 64, 26, 6).fillRoundedRect(-36, 10, 72, 28, 5); g.fillStyle(stroke, 1).fillCircle(-17, -16, 4).fillCircle(17, -16, 4);
     } else if (name.includes('Claw')) {
-      g.fillEllipse(0, 6, 88, 82); g.lineStyle(4, stroke).strokeEllipse(0, 6, 88, 82); g.lineStyle(8, accent).beginPath().moveTo(-22, -38).quadraticCurveTo(-52, -72, -68, -30).moveTo(22, -38).quadraticCurveTo(52, -72, 68, -30).strokePath(); g.fillStyle(0xffefb0, 1).fillCircle(-15, -6, 8).fillCircle(15, -6, 8);
+      g.fillEllipse(0, 6, 88, 82); g.lineStyle(4, stroke).strokeEllipse(0, 6, 88, 82); g.lineStyle(8, accent); strokeQuad(g, -22, -38, -52, -72, -68, -30); strokeQuad(g, 22, -38, 52, -72, 68, -30); g.fillStyle(0xffefb0, 1).fillCircle(-15, -6, 8).fillCircle(15, -6, 8);
     } else if (name.includes('Trash')) {
       g.fillEllipse(0, 2, 96, 92); g.fillStyle(0x000000, 0.12).fillEllipse(-16, -10, 46, 34); g.lineStyle(4, stroke).strokeEllipse(0, 2, 96, 92); g.fillStyle(0xffefb0, 1).fillCircle(-14, -8, 7).fillCircle(18, -6, 7); g.fillStyle(stroke, 1).fillTriangle(-10, 20, 12, 17, 2, 30);
     } else if (name.includes('Wraith') || name.includes('Ooze') || name.includes('Elemental')) {
       g.fillEllipse(0, -4, 88, 74); g.fillTriangle(-43, 12, -20, 62, 0, 20); g.fillTriangle(0, 18, 18, 66, 36, 18); g.lineStyle(4, stroke).strokeEllipse(0, -4, 88, 74); g.fillStyle(0xffefb0, 1).fillCircle(-16, -12, 6).fillCircle(16, -12, 6);
     } else {
-      g.fillEllipse(0, 0, 90, 78); g.fillCircle(-35, -14, 22); g.fillCircle(34, -10, 18); g.lineStyle(4, stroke).strokeEllipse(0, 0, 90, 78); g.fillStyle(0xffefb0, 1).fillCircle(-16, -10, 8).fillCircle(17, -9, 8); g.fillStyle(stroke, 1).fillCircle(-14, -10, 3).fillCircle(19, -9, 3); g.lineStyle(3, stroke).beginPath().moveTo(-14, 18).quadraticCurveTo(2, 28, 20, 16).strokePath();
+      g.fillEllipse(0, 0, 90, 78); g.fillCircle(-35, -14, 22); g.fillCircle(34, -10, 18); g.lineStyle(4, stroke).strokeEllipse(0, 0, 90, 78); g.fillStyle(0xffefb0, 1).fillCircle(-16, -10, 8).fillCircle(17, -9, 8); g.fillStyle(stroke, 1).fillCircle(-14, -10, 3).fillCircle(19, -9, 3); g.lineStyle(3, stroke); strokeQuad(g, -14, 18, 2, 28, 20, 16, 6);
     }
     g.fillStyle(accent, 0.32).fillCircle(-28, -26, 9).fillCircle(34, 18, 7);
     this.enemyArt.add(g);
@@ -819,7 +851,7 @@ class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: this.weaponArt, angle: -48, scale: 1.3, duration: 110, yoyo: true, ease: 'Back.easeOut' });
     this.tweens.add({ targets: this.enemy, x: 565, angle: 4, duration: 70, yoyo: true, repeat: 1 });
     const slash = this.add.graphics();
-    slash.lineStyle(7, colorNumber(TIERS[equippedWeapon().tier].color), 0.75).beginPath().moveTo(454, 258).quadraticCurveTo(515, 210, 594, 296).strokePath();
+    slash.lineStyle(7, colorNumber(TIERS[equippedWeapon().tier].color), 0.75); strokeQuad(slash, 454, 258, 515, 210, 594, 296);
     this.tweens.add({ targets: slash, alpha: 0, scale: 1.18, duration: 220, onComplete: () => slash.destroy() });
     const hit = this.add.text(this.enemy.x - 12, this.enemy.y - 92, `-${damage}`, { fontFamily: 'Georgia, serif', fontSize: '26px', color: '#ffefb0', stroke: '#241634', strokeThickness: 5 });
     this.tweens.add({ targets: hit, y: hit.y - 38, alpha: 0, duration: 560, onComplete: () => hit.destroy() });
@@ -833,7 +865,7 @@ class BattleScene extends Phaser.Scene {
   }
 
   syncFromState(gameState, attack, defense) {
-    if (!this.zoneText) return;
+    if (!this.zoneText || !this.enemyGlow) return;
     const zone = currentZone();
     const weapon = equippedWeapon();
     const armor = equippedArmor();
