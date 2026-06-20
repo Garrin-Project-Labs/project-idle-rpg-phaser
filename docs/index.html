@@ -26,6 +26,7 @@
           <button class="menu-button active" data-screen="battle">Battle</button>
           <button class="menu-button" data-screen="character">Character</button>
           <button class="menu-button" data-screen="weapons">Weapons</button>
+          <button class="menu-button" data-screen="armor">Armor</button>
           <button class="menu-button" data-screen="crafting">Crafting</button>
           <button class="menu-button" data-screen="inventory">Inventory</button>
         </nav>
@@ -53,10 +54,19 @@
           <div id="weaponList" class="list"></div>
         </div>
 
+        <div id="screen-armor" class="screen">
+          <h2>Armor</h2>
+          <p>Protective nonsense with the same tier glow rules. Equip favorites and salvage extras.</p>
+          <div id="armorList" class="list"></div>
+        </div>
+
         <div id="screen-crafting" class="screen">
           <h2>Crafting</h2>
-          <p>Break down unwanted drops into junk, then spend junk and gold to make your equipped weapon more alarming.</p>
-          <button id="upgradeWeapon">Upgrade equipped weapon</button>
+          <p>Break down unwanted drops into junk, then spend junk and gold to upgrade equipped weapons and armor.</p>
+          <div class="button-row">
+            <button id="upgradeWeapon">Upgrade equipped weapon</button>
+            <button id="upgradeArmor" class="secondary">Upgrade equipped armor</button>
+          </div>
           <p id="craftingHint" class="hint"></p>
         </div>
 
