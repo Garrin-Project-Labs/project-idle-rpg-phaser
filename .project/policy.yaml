@@ -1,0 +1,61 @@
+project:
+  id: "idle-rpg-phaser"
+  name: "Idle RPG Phaser"
+  repo: "Garrin-Project-Labs/project-idle-rpg-phaser"
+  sourceOfTruth: discord
+
+owner:
+  discordUserId: "222914128463921152"
+  label: "ClickG"
+
+discord:
+  guildId: "1515020347425030245"
+  channelId: "1517780386091106395"
+  visibility: "public"
+  projectsCategoryId: "1516195966330343444"
+  projectCreationChannelId: "1516196374620799127"
+  roles:
+    viewer:
+      roleId: "1517780379493204139"
+      name: "idle-rpg-phaser-viewer"
+    contributor:
+      roleId: "1517780380927787041"
+      name: "idle-rpg-phaser-contributor"
+    maintainer:
+      roleId: "1517780382693593148"
+      name: "idle-rpg-phaser-maintainer"
+
+authorization:
+  allowViewerQuestions: true
+  allowContributorsToClaimTasks: true
+  requireMaintainerForPlanApproval: true
+  requireMaintainerForDocsAndMemory: true
+  requireOwnerForInvites: false
+  requireOwnerForRepoCreation: true
+  requireOwnerForArchiveDelete: true
+  requireGlobalOwnerForGatewayConfig: true
+
+publishing:
+  githubPages: true
+  githubPagesStatus: "pending"
+  githubPagesUrl: "https://garrin-project-labs.github.io/project-idle-rpg-phaser/"
+  githubPagesSource: "main:/docs"
+  publicDemos: true
+
+workflow:
+  taskThreads: automatic
+  taskCommandStyle: natural_language
+  friendlyTaskName: quest
+  requireMention: true
+  jamMode: temporary_ambient
+  branchNaming: "task/<id>-<slug>"
+  requirePlanApproval: true
+  requireMaintainerForDocsAndMemory: true
+  allowBotMergeWithMaintainerApproval: true
+  githubIssues: false
+
+audit:
+  level: medium
+  path: ".project/audit/events.jsonl"
+  includePrLinks: true
+  includeDiscordThreadLinks: true
