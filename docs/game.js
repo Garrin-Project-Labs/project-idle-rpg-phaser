@@ -719,8 +719,8 @@ class BattleScene extends Phaser.Scene {
     this.heroBody.removeAll(true);
     const g = this.add.graphics();
     g.fillStyle(0x2b1d32, 0.35).fillEllipse(0, 10, 82, 108);
-    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(-28, -10).curveTo(-64, 0, -58, 42, -24, 36).strokePath();
-    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(30, -12).curveTo(64, 0, 62, 34, 28, 34).strokePath();
+    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(-28, -10).quadraticCurveTo(-64, 0, -24, 36).strokePath();
+    g.lineStyle(8, 0x432857, 1).beginPath().moveTo(30, -12).quadraticCurveTo(64, 0, 28, 34).strokePath();
     g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(-17, 34).lineTo(-28, 70).strokePath();
     g.lineStyle(9, 0x34213d, 1).beginPath().moveTo(17, 34).lineTo(24, 70).strokePath();
     g.fillStyle(0x2d1834, 1).fillEllipse(-30, 72, 28, 12).fillEllipse(26, 72, 28, 12);
