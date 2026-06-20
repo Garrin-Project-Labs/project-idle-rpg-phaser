@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Idle RPG Phaser</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow">Idle RPG prototype</p>
+        <h1>Menu Quest</h1>
+        <p class="lede">Start a battle, wander into menus, and come back to see what your tiny hero earned.</p>
+      </div>
+      <div class="save-pill" id="saveStatus">Loading save…</div>
+    </section>
+
+    <section class="game-layout">
+      <div id="game"></div>
+
+      <aside class="panel">
+        <nav class="menu" aria-label="Main menu">
+          <button class="menu-button active" data-screen="battle">Battle</button>
+          <button class="menu-button" data-screen="character">Character</button>
+          <button class="menu-button" data-screen="weapons">Weapons</button>
+          <button class="menu-button" data-screen="crafting">Crafting</button>
+          <button class="menu-button" data-screen="inventory">Inventory</button>
+        </nav>
+
+        <div id="screen-battle" class="screen active">
+          <h2>Battle</h2>
+          <p id="battleSummary">Preparing the training yard…</p>
+          <div class="button-row">
+            <button id="toggleBattle">Start battle</button>
+            <button id="healButton" class="secondary">Rest + heal</button>
+          </div>
+          <label class="field-label" for="zoneSelect">Zone</label>
+          <select id="zoneSelect"></select>
+          <div class="stat-grid" id="battleStats"></div>
+        </div>
+
+        <div id="screen-character" class="screen">
+          <h2>Character</h2>
+          <div class="stat-grid" id="characterStats"></div>
+        </div>
+
+        <div id="screen-weapons" class="screen">
+          <h2>Weapons</h2>
+          <p>EarthBound-ish household nonsense. Bigger bonk number means faster monster removal.</p>
+          <div id="weaponList" class="list"></div>
+        </div>
+
+        <div id="screen-crafting" class="screen">
+          <h2>Crafting</h2>
+          <p>Spend pocket change and junk to make your current weapon more alarming.</p>
+          <button id="upgradeWeapon">Upgrade equipped weapon</button>
+          <p id="craftingHint" class="hint"></p>
+        </div>
+
+        <div id="screen-inventory" class="screen">
+          <h2>Inventory</h2>
+          <div class="stat-grid" id="inventoryStats"></div>
+          <button id="resetSave" class="danger">Reset local save</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel log-panel">
+      <h2>Combat log</h2>
+      <ol id="combatLog"></ol>
+    </section>
+  </main>
+
+  <script src="./game.js"></script>
+</body>
+</html>
