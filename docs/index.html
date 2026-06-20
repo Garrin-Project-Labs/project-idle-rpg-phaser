@@ -74,6 +74,14 @@
         <div id="screen-inventory" class="screen">
           <h2>Inventory</h2>
           <div class="stat-grid" id="inventoryStats"></div>
+          <label class="field-label" for="autoSalvageBelow">Auto-salvage drops</label>
+          <select id="autoSalvageBelow">
+            <option value="none">Off — keep all drops</option>
+            <option value="unusual">Break down Common</option>
+            <option value="rare">Break down Common + Unusual</option>
+            <option value="epic">Break down Common + Unusual + Rare</option>
+          </select>
+          <p class="hint">Auto-salvaged drops become junk + gold before they take inventory space.</p>
           <button id="resetSave" class="danger">Reset local save</button>
         </div>
       </aside>

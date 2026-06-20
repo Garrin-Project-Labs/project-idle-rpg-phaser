@@ -1,9 +1,10 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const MAX_WEAPONS = 14;
 const MAX_ARMORS = 12;
+const TIER_ORDER = ['common', 'unusual', 'rare', 'epic'];
 
 const TIERS = {
   common: { name: 'Common', color: '#cbbd9b', attackBonus: 0, defenseBonus: 0, dropWeight: 66, salvage: 3, upgradeGold: 10, upgradeJunk: 4 },
@@ -56,6 +57,36 @@ const ZONES = [
       { name: 'Passive-Aggressive Printer', hp: 92, attack: 12, exp: 42, gold: 26, junk: 6 },
       { name: 'Spreadsheet Wraith', hp: 112, attack: 14, exp: 54, gold: 31, junk: 7 },
       { name: 'Meeting Ooze', hp: 138, attack: 16, exp: 68, gold: 38, junk: 8 }
+    ]
+  },
+  {
+    id: 'pantry',
+    name: 'Dusty Pantry Crypt',
+    theme: 'Expired condiments, sacred crumbs, and jars that have become legally hostile.',
+    unlockLevel: 12,
+    palette: { sky: '#4a2f25', ground: '#8a6942', path: '#5f3c2e', enemy: '#d88952', accent: '#f0cf75' },
+    dropChance: 0.28,
+    weaponPool: ['frying-pan', 'coffee-mug', 'rubber-chicken', 'soda-straw', 'bottle-rocket'],
+    armorPool: ['hoodie', 'soda-tab-mail', 'tie-of-denial'],
+    enemies: [
+      { name: 'Bread Mold Homunculus', hp: 178, attack: 20, exp: 92, gold: 52, junk: 10 },
+      { name: 'Forklifted Pickle Jar', hp: 214, attack: 22, exp: 112, gold: 62, junk: 12 },
+      { name: 'Self-Crumbing Biscuit', hp: 246, attack: 25, exp: 136, gold: 74, junk: 14 }
+    ]
+  },
+  {
+    id: 'sewers',
+    name: 'Royal Sewer Scriptorium',
+    theme: 'A damp royal archive where rats sign decrees and leeches demand back taxes.',
+    unlockLevel: 16,
+    palette: { sky: '#18332f', ground: '#315c52', path: '#223f3d', enemy: '#9fd0a0', accent: '#c6e6d0' },
+    dropChance: 0.31,
+    weaponPool: ['briefcase', 'stapler', 'keyboard', 'garden-rake', 'plastic-sword'],
+    armorPool: ['printer-toner-plate', 'conference-badge', 'mall-cop-vest'],
+    enemies: [
+      { name: 'Crowned Sewer Rat', hp: 310, attack: 30, exp: 184, gold: 92, junk: 16 },
+      { name: 'Royal Flush Wraith', hp: 360, attack: 34, exp: 224, gold: 108, junk: 18 },
+      { name: 'Tax-Collecting Leech', hp: 420, attack: 38, exp: 270, gold: 132, junk: 22 }
     ]
   }
 ];
@@ -160,6 +191,7 @@ function freshSave() {
     armors: structuredClone(STARTER_ARMORS),
     equippedWeaponId: 'starter-cracked-bat',
     equippedArmorId: 'starter-hoodie',
+    autoSalvageBelow: 'none',
     log: ['Welcome to Menu Quest. Pick Battle when you are ready to bonk.'],
     lastSavedAt: Date.now()
   };
@@ -289,8 +321,24 @@ function salvageValue(item) {
   };
 }
 
+function tierRank(tier) {
+  return TIER_ORDER.indexOf(tier);
+}
+
+function shouldAutoSalvageDrop(item) {
+  if (!state.autoSalvageBelow || state.autoSalvageBelow === 'none') return false;
+  return tierRank(item.tier) >= 0 && tierRank(item.tier) < tierRank(state.autoSalvageBelow);
+}
+
 function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
   const tierName = TIERS[item.tier].name;
+  if (shouldAutoSalvageDrop(item)) {
+    const salvage = salvageValue(item);
+    state.junk += salvage.junk;
+    state.gold += salvage.gold;
+    addLog(`Auto-salvaged ${tierName} ${item.name}: +${salvage.junk} junk, +${salvage.gold} gold.`);
+    return;
+  }
   if (collection.length >= maxItems) {
     const salvage = salvageValue(item);
     state.junk += salvage.junk;
@@ -466,6 +514,7 @@ function render() {
     stat('Junk', state.junk),
     stat('Weapon space', `${state.weapons.length}/${MAX_WEAPONS}`),
     stat('Armor space', `${state.armors.length}/${MAX_ARMORS}`),
+    stat('Auto salvage', state.autoSalvageBelow === 'none' ? 'Off' : `Below ${TIERS[state.autoSalvageBelow].name}`),
     stat('Offline cap', '8 hours')
   ].join('');
 
@@ -483,6 +532,9 @@ function render() {
   const zoneSelect = document.querySelector('#zoneSelect');
   const options = unlockedZones().map(z => `<option value="${z.id}" ${z.id === state.selectedZone ? 'selected' : ''}>${z.name} · Lv.${z.unlockLevel}+</option>`).join('');
   if (zoneSelect.innerHTML !== options) zoneSelect.innerHTML = options;
+
+  const autoSalvageSelect = document.querySelector('#autoSalvageBelow');
+  if (autoSalvageSelect) autoSalvageSelect.value = state.autoSalvageBelow || 'none';
 
   if (scene) scene.syncFromState(state, totalAttack(), totalDefense());
 }
@@ -582,6 +634,13 @@ function bindUi() {
 
   document.querySelector('#upgradeArmor').addEventListener('click', () => {
     upgradeEquipped('armor');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#autoSalvageBelow').addEventListener('change', event => {
+    state.autoSalvageBelow = event.target.value;
+    addLog(state.autoSalvageBelow === 'none' ? 'Auto-salvage turned off.' : `Auto-salvage will break down drops below ${TIERS[state.autoSalvageBelow].name}.`);
     saveGame();
     render();
   });
