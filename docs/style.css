@@ -44,7 +44,7 @@ button.danger { background: linear-gradient(#ff91a0, var(--danger)); box-shadow:
 button:disabled { filter: grayscale(0.8); opacity: 0.55; cursor: not-allowed; }
 
 .shell {
-  width: min(1220px, calc(100% - 2rem));
+  width: min(980px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 1rem 0 2rem;
 }
@@ -87,18 +87,23 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
 .lede, .hint { color: var(--muted); }
 .save-pill { border: 2px solid var(--border); border-radius: 999px; padding: 0.55rem 0.85rem; color: var(--muted); white-space: nowrap; background: rgba(0,0,0,0.14); }
 
-.game-layout {
+.top-nav {
   display: grid;
-  grid-template-columns: minmax(440px, 760px) minmax(320px, 1fr);
-  gap: 1rem;
-  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.game-layout {
+  display: block;
 }
 
 .stage-shell {
   position: relative;
   overflow: hidden;
   min-height: 585px;
-  padding: 0.75rem;
+  padding: 0.75rem 0.75rem 5rem;
 }
 
 .stage-view {
@@ -128,7 +133,7 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
   box-shadow: 0 20px 55px rgba(0,0,0,0.34), 0 0 0 6px rgba(255,255,255,0.035);
 }
 
-.town-stage, .stage-panel {
+.town-stage, .stage-panel, .battle-dock {
   min-height: 540px;
   border: 3px solid color-mix(in srgb, var(--border) 80%, white);
   border-radius: 1.35rem;
@@ -140,7 +145,7 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
   background: url("./assets/production/town-hub-background.png") center / 100% 100% no-repeat;
 }
 
-.stage-panel {
+.stage-panel, .battle-dock {
   padding: 1.2rem;
   overflow: auto;
   background:
@@ -148,6 +153,14 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
     radial-gradient(circle at 85% 10%, rgba(255, 207, 104, 0.16), transparent 16rem),
     color-mix(in srgb, var(--card) 92%, black);
 }
+
+.battle-dock {
+  display: none;
+  min-height: auto;
+  margin-top: 1rem;
+}
+
+body[data-stage="battle"] .battle-dock { display: block; }
 
 .blacksmith-panel { background-color: #2d2129; }
 .tavern-panel { background-color: #302139; }
@@ -233,13 +246,23 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
 .town-hotspot em:empty { display: none; }
 .building-icon { font-size: 1.26rem; }
 
+.town-news {
+  position: absolute;
+  left: 1rem;
+  bottom: 5rem;
+  z-index: 1;
+  max-width: min(22rem, 48%);
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  background: rgba(26, 16, 22, 0.68);
+  border: 1px solid rgba(255, 239, 176, 0.34);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+}
+.town-news h3 { margin-bottom: 0.35rem; }
+
 .panel { padding: 1rem; }
-.side-panel { max-height: 585px; overflow: auto; }
-.menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; margin-bottom: 1rem; }
 .menu-button { background: linear-gradient(#49365c, #2b2038); color: var(--ink); box-shadow: 0 4px 0 #171222, inset 0 1px 0 rgba(255,255,255,0.08); border-color: var(--border); }
 .menu-button.active { background: linear-gradient(#a6f5b1, #63c979); color: #102111; box-shadow: 0 4px 0 #356a37; }
-.screen { display: none; }
-.screen.active { display: block; }
 .button-row, .quick-grid { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 0.8rem 0; }
 .quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .quick-grid button { padding: 0.7rem; }
@@ -271,8 +294,6 @@ select { width: 100%; background: #fff2bd; }
 #combatLog li:first-child, .mini-log li:first-child { color: var(--ink); }
 
 @media (max-width: 960px) {
-  .game-layout { grid-template-columns: 1fr; }
-  .side-panel { max-height: none; }
   .hero-card { align-items: flex-start; flex-direction: column; }
   .save-pill { white-space: normal; }
 }
@@ -286,5 +307,5 @@ select { width: 100%; background: #fff2bd; }
   .building-icon { font-size: 1.2rem; }
   .equipment-card, .quest-card, .shop-card { grid-template-columns: 1fr; }
   .equipment-actions { justify-content: flex-start; }
-  .stat-grid, .quick-grid, .menu { grid-template-columns: 1fr; }
+  .stat-grid, .quick-grid, .top-nav { grid-template-columns: 1fr; }
 }

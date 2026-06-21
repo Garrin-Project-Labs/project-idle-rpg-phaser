@@ -561,7 +561,6 @@ function switchScreen(screen) {
   const mainScreen = mainScreenFor(screen);
   document.body.dataset.stage = screen === 'battle' ? 'battle' : 'town';
   document.querySelectorAll('.menu-button').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === mainScreen));
-  document.querySelectorAll('.screen').forEach(el => el.classList.toggle('active', el.id === `screen-${mainScreen}`));
   document.querySelectorAll('.stage-view').forEach(el => el.classList.toggle('active', el.id === stageFor(screen)));
   if (screen === 'battle' && scene) scene.syncFromState(state, totalAttack(), totalDefense());
 }

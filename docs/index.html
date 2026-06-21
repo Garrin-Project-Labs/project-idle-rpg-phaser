@@ -19,6 +19,12 @@
       <div class="save-pill" id="saveStatus">Loading save…</div>
     </section>
 
+    <nav class="top-nav panel" aria-label="Main views">
+      <button class="menu-button active" data-screen="town">Town</button>
+      <button class="menu-button" data-screen="battle">Battle</button>
+      <button class="menu-button" data-screen="character">Hero</button>
+    </nav>
+
     <section class="game-layout">
       <div class="stage-shell">
         <div id="townStage" class="stage-view town-stage active" aria-label="Clickable town hub">
@@ -47,9 +53,25 @@
             <strong>Battle Road</strong>
             <em id="townRoadBadge"></em>
           </button>
+          <div class="town-news">
+            <h3>Recent news</h3>
+            <ol id="miniCombatLog" class="mini-log"></ol>
+          </div>
         </div>
 
         <div id="game" class="stage-view"></div>
+
+        <section class="battle-dock" aria-label="Battle controls">
+          <h2>Battle</h2>
+          <p id="battleSummary">Preparing the training yard…</p>
+          <div class="button-row">
+            <button id="toggleBattle">Start battle</button>
+            <button id="healButton" class="secondary">Rest + heal</button>
+          </div>
+          <label class="field-label" for="zoneSelect">Zone</label>
+          <select id="zoneSelect"></select>
+          <div class="stat-grid" id="battleStats"></div>
+        </section>
 
         <section id="stage-quests" class="stage-view stage-panel tavern-panel">
           <button class="back-town" data-town-target="town">← Town</button>
@@ -94,6 +116,12 @@
         <section id="stage-character" class="stage-view stage-panel hero-panel">
           <p class="eyebrow">Hero</p>
           <h2>Hero Stats</h2>
+          <p>Hero details open in the main stage now — no side menu needed.</p>
+          <div class="quick-grid hero-quick-grid">
+            <button data-hero-target="weapons">🗡️ Weapons</button>
+            <button data-hero-target="armor">🛡️ Armor</button>
+            <button data-hero-target="inventory">🎒 Inventory</button>
+          </div>
           <div class="stat-grid" id="characterStats"></div>
         </section>
 
@@ -131,50 +159,6 @@
 
         <div class="next-prompt" id="nextPrompt">Next: loading…</div>
       </div>
-
-      <aside class="panel side-panel">
-        <nav class="menu main-menu" aria-label="Main views">
-          <button class="menu-button active" data-screen="town">Town</button>
-          <button class="menu-button" data-screen="battle">Battle</button>
-          <button class="menu-button" data-screen="character">Hero</button>
-        </nav>
-
-        <div id="screen-town" class="screen active">
-          <h2>Town</h2>
-          <p>Pick a building on the main map, or use these shortcuts.</p>
-          <div class="quick-grid">
-            <button data-town-target="crafting">⚒️ Blacksmith</button>
-            <button data-town-target="quests">🍻 Tavern</button>
-            <button data-town-target="shop">🎒 Shop</button>
-            <button data-town-target="training">🎯 Training</button>
-          </div>
-          <h3>Recent news</h3>
-          <ol id="miniCombatLog" class="mini-log"></ol>
-        </div>
-
-        <div id="screen-battle" class="screen">
-          <h2>Battle</h2>
-          <p id="battleSummary">Preparing the training yard…</p>
-          <div class="button-row">
-            <button id="toggleBattle">Start battle</button>
-            <button id="healButton" class="secondary">Rest + heal</button>
-          </div>
-          <label class="field-label" for="zoneSelect">Zone</label>
-          <select id="zoneSelect"></select>
-          <div class="stat-grid" id="battleStats"></div>
-        </div>
-
-        <div id="screen-character" class="screen">
-          <h2>Hero</h2>
-          <p>Open hero screens in the main stage.</p>
-          <div class="quick-grid">
-            <button data-hero-target="stats">📊 Stats</button>
-            <button data-hero-target="weapons">🗡️ Weapons</button>
-            <button data-hero-target="armor">🛡️ Armor</button>
-            <button data-hero-target="inventory">🎒 Inventory</button>
-          </div>
-        </div>
-      </aside>
     </section>
 
     <details class="panel log-panel">
