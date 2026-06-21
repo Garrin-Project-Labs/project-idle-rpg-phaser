@@ -545,9 +545,18 @@ function unlockedZones() {
   return ZONES.filter(z => state.level >= z.unlockLevel);
 }
 
+function mainScreenFor(screen) {
+  if (screen === 'battle') return 'battle';
+  if (['character', 'weapons', 'armor', 'inventory'].includes(screen)) return 'character';
+  return 'town';
+}
+
 function switchScreen(screen) {
-  document.querySelectorAll('.menu-button').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === screen));
+  const mainScreen = mainScreenFor(screen);
+  document.body.dataset.stage = screen === 'battle' ? 'battle' : 'town';
+  document.querySelectorAll('.menu-button').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === mainScreen));
   document.querySelectorAll('.screen').forEach(el => el.classList.toggle('active', el.id === `screen-${screen}`));
+  if (screen === 'battle' && scene) scene.syncFromState(state, totalAttack(), totalDefense());
 }
 
 function stat(label, value) {
@@ -618,6 +627,20 @@ function townBadgeText() {
   return { readyQuests, canUpgrade, canShop, canTrain };
 }
 
+function nextPromptText() {
+  if (state.hp <= 0) return 'Next: Rest at the battle panel, then restart auto-battle.';
+  const readyQuests = QUESTS.filter(q => questStatus(q) === 'ready');
+  if (readyQuests.length) return `Next: Claim ${readyQuests.length} reward${readyQuests.length === 1 ? '' : 's'} at the Tavern.`;
+  const weaponCost = currentUpgradeCost('weapon');
+  if (state.gold >= weaponCost.gold && state.junk >= weaponCost.junk) return 'Next: Visit the Blacksmith and upgrade your weapon.';
+  const armorCost = currentUpgradeCost('armor');
+  if (state.gold >= armorCost.gold && state.junk >= armorCost.junk) return 'Next: Visit the Blacksmith and upgrade your armor.';
+  const nextZone = ZONES.find(z => state.level < z.unlockLevel);
+  if (nextZone) return `Next: Keep battling toward level ${nextZone.unlockLevel} to unlock ${nextZone.name}.`;
+  if (!state.battleRunning) return 'Next: Start auto-battle from the Road Sign.';
+  return 'Next: Let auto-battle run, then check town for rewards.';
+}
+
 function render() {
   const enemy = state.currentEnemy || { name: 'No enemy', hp: 1 };
   const weapon = equippedWeapon();
@@ -685,6 +708,8 @@ function render() {
   document.querySelector('#upgradeArmor').disabled = state.gold < armorCost.gold || state.junk < armorCost.junk;
 
   document.querySelector('#combatLog').innerHTML = state.log.map(item => `<li>${item}</li>`).join('');
+  document.querySelector('#miniCombatLog').innerHTML = state.log.slice(0, 5).map(item => `<li>${item}</li>`).join('');
+  document.querySelector('#nextPrompt').textContent = nextPromptText();
 
   const zoneSelect = document.querySelector('#zoneSelect');
   const options = unlockedZones().map(z => `<option value="${z.id}" ${z.id === state.selectedZone ? 'selected' : ''}>${z.name} · Lv.${z.unlockLevel}+</option>`).join('');
@@ -738,6 +763,13 @@ function bindUi() {
 
   document.querySelectorAll('[data-town-target]').forEach(btn => {
     btn.addEventListener('click', () => switchScreen(btn.dataset.townTarget));
+  });
+
+  document.querySelectorAll('[data-hero-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.heroTarget;
+      switchScreen(target === 'stats' ? 'character' : target);
+    });
   });
 
   document.querySelector('#toggleBattle').addEventListener('click', () => {
@@ -911,14 +943,23 @@ class BattleScene extends Phaser.Scene {
     scene = this;
     this.bg = this.add.image(360, 270, 'bg-backyard').setDisplaySize(720, 540);
 
-    this.titleText = this.add.text(28, 24, 'Menu Quest', {
-      fontFamily: 'Georgia, serif', fontSize: '32px', color: '#ffefb0',
-      stroke: '#3a1f18', strokeThickness: 5, shadow: { offsetX: 2, offsetY: 3, color: '#000000', blur: 2, fill: true }
+    this.topHud = this.add.rectangle(360, 48, 680, 76, 0x2a1832, 0.82).setStrokeStyle(3, 0xffcf68, 0.5);
+
+    this.titleText = this.add.text(36, 22, 'Battle Road', {
+      fontFamily: 'Georgia, serif', fontSize: '26px', color: '#ffefb0',
+      stroke: '#3a1f18', strokeThickness: 4, shadow: { offsetX: 2, offsetY: 3, color: '#000000', blur: 2, fill: true }
     });
-    this.zoneText = this.add.text(30, 66, '', {
-      fontFamily: 'Georgia, serif', fontSize: '15px', color: '#3a1f18',
-      wordWrap: { width: 650 }, lineSpacing: 3
+    this.zoneText = this.add.text(36, 56, '', {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '14px', color: '#fff4d0',
+      wordWrap: { width: 620 }, lineSpacing: 3
     });
+
+    this.heroHpLabel = this.add.text(44, 104, 'Hero', { fontFamily: 'monospace', fontSize: '14px', color: '#fff4d0', stroke: '#3a1f18', strokeThickness: 3 });
+    this.heroHpBack = this.add.rectangle(134, 114, 170, 14, 0x1b101d, 0.88).setOrigin(0, 0.5).setStrokeStyle(2, 0xffefb0, 0.35);
+    this.heroHpFill = this.add.rectangle(134, 114, 170, 10, 0x8ff0a4, 0.95).setOrigin(0, 0.5);
+    this.enemyHpLabel = this.add.text(418, 104, 'Enemy', { fontFamily: 'monospace', fontSize: '14px', color: '#fff4d0', stroke: '#3a1f18', strokeThickness: 3 });
+    this.enemyHpBack = this.add.rectangle(500, 114, 170, 14, 0x1b101d, 0.88).setOrigin(0, 0.5).setStrokeStyle(2, 0xffefb0, 0.35);
+    this.enemyHpFill = this.add.rectangle(500, 114, 170, 10, 0xff6b7a, 0.95).setOrigin(0, 0.5);
 
     this.hero = this.add.container(178, 332);
     this.heroShadow = this.add.image(0, 72, 'shadow').setScale(0.82);
@@ -933,12 +974,13 @@ class BattleScene extends Phaser.Scene {
     this.enemyShadow = this.add.image(0, 84, 'shadow').setScale(1.04);
     this.enemySprite = this.add.image(0, 0, 'enemy-suspicious-ant').setScale(0.82);
     this.enemy.add([this.enemyShadow, this.enemySprite]);
-    this.enemyName = this.add.text(420, 205, '', {
+    this.enemyName = this.add.text(420, 190, '', {
       fontFamily: 'Georgia, serif', fontSize: '18px', color: '#fff4d0', align: 'center',
       stroke: '#3a1f18', strokeThickness: 4, wordWrap: { width: 240 }
     });
 
-    this.statusText = this.add.text(28, 500, '', { fontFamily: 'monospace', fontSize: '17px', color: '#fff4d0', stroke: '#3a1f18', strokeThickness: 4 });
+    this.bottomHud = this.add.rectangle(360, 506, 680, 48, 0x211629, 0.86).setStrokeStyle(3, 0x8ff0a4, 0.32);
+    this.statusText = this.add.text(38, 492, '', { fontFamily: 'monospace', fontSize: '16px', color: '#fff4d0', stroke: '#3a1f18', strokeThickness: 4 });
     this.syncFromState(state, totalAttack(), totalDefense());
   }
 
@@ -990,10 +1032,15 @@ class BattleScene extends Phaser.Scene {
     }
 
     this.tierGlow.setAlpha(weapon.tier === 'common' ? 0.42 : weapon.tier === 'unusual' ? 0.58 : weapon.tier === 'rare' ? 0.72 : 0.9);
-    this.zoneText.setText(`${zone.name} — ${zone.theme}`);
+    this.zoneText.setText(`${zone.name} · ${zone.theme}`);
     this.enemyName.setText(enemy.name);
-    this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}   HP ${gameState.hp}/${gameState.maxHp}   ATK ${attack}   DEF ${defense}   LV ${gameState.level}`);
-    const danger = Math.max(0.25, gameState.enemyHp / enemy.hp);
+    this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}    LV ${gameState.level}    ATK ${attack}    DEF ${defense}    KILLS ${gameState.kills}`);
+    const heroRatio = Phaser.Math.Clamp(gameState.hp / gameState.maxHp, 0, 1);
+    const danger = Phaser.Math.Clamp(gameState.enemyHp / enemy.hp, 0, 1);
+    this.heroHpFill.width = 170 * heroRatio;
+    this.enemyHpFill.width = 170 * danger;
+    this.heroHpLabel.setText(`Hero ${gameState.hp}/${gameState.maxHp}`);
+    this.enemyHpLabel.setText(`${Math.max(0, gameState.enemyHp)}/${enemy.hp}`);
     this.enemy.setScale(0.86 + danger * 0.28);
     this.enemy.setAlpha(gameState.battleRunning ? 1 : 0.68);
     this.hero.setAlpha(gameState.hp > 0 ? 1 : 0.45);
