@@ -553,6 +553,7 @@ function mainScreenFor(screen) {
 
 function stageFor(screen) {
   if (screen === 'battle') return 'game';
+  if (screen === 'town') return 'townStage';
   return `stage-${screen}`;
 }
 
