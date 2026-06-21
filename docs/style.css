@@ -101,8 +101,21 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
   padding: 0.75rem;
 }
 
-#game, #townStage {
+.stage-view {
+  position: absolute;
+  inset: 0.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.985);
   transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.stage-view.active {
+  position: relative;
+  inset: auto;
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
 }
 
 #game canvas {
@@ -115,19 +128,37 @@ h2, h3 { margin-bottom: 0.55rem; font-family: Georgia, serif; }
   box-shadow: 0 20px 55px rgba(0,0,0,0.34), 0 0 0 6px rgba(255,255,255,0.035);
 }
 
-body[data-stage="town"] #game { position: absolute; opacity: 0; pointer-events: none; transform: scale(0.98); }
-body[data-stage="battle"] #townStage { position: absolute; opacity: 0; pointer-events: none; transform: scale(0.98); }
-body[data-stage="battle"] #game { position: relative; opacity: 1; }
-
-.town-stage {
-  position: relative;
+.town-stage, .stage-panel {
   min-height: 540px;
   border: 3px solid color-mix(in srgb, var(--border) 80%, white);
   border-radius: 1.35rem;
   overflow: hidden;
-  padding: 0;
-  background: url("./assets/production/town-hub-background.png") center / 100% 100% no-repeat;
   box-shadow: 0 20px 55px rgba(0,0,0,0.34), 0 0 0 6px rgba(255,255,255,0.035);
+}
+
+.town-stage {
+  background: url("./assets/production/town-hub-background.png") center / 100% 100% no-repeat;
+}
+
+.stage-panel {
+  padding: 1.2rem;
+  overflow: auto;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.07), transparent 30%),
+    radial-gradient(circle at 85% 10%, rgba(255, 207, 104, 0.16), transparent 16rem),
+    color-mix(in srgb, var(--card) 92%, black);
+}
+
+.blacksmith-panel { background-color: #2d2129; }
+.tavern-panel { background-color: #302139; }
+.shop-panel { background-color: #202d3d; }
+.training-panel { background-color: #203423; }
+.hero-panel { background-color: #211f3a; }
+
+.back-town {
+  float: right;
+  padding: 0.45rem 0.7rem;
+  margin-left: 0.75rem;
 }
 
 .next-prompt {
@@ -226,6 +257,7 @@ select { width: 100%; background: #fff2bd; }
 .stat span { font-size: 1.05rem; }
 .list { display: grid; gap: 0.55rem; }
 .equipment-card, .quest-card, .shop-card { display: grid; grid-template-columns: 1fr auto; gap: 0.6rem; align-items: center; background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)), var(--card-2); border: 1px solid var(--border); border-radius: 1rem; padding: 0.75rem; }
+.stage-panel .equipment-card, .stage-panel .quest-card, .stage-panel .shop-card { background: rgba(31, 24, 42, 0.82); }
 .equipment-card.equipped, .quest-card.ready { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(255,207,104,0.35), 0 0 18px rgba(255,207,104,0.08); }
 .quest-card.claimed, .shop-card.bought { opacity: 0.72; }
 .equipment-card small, .quest-card small, .shop-card small { color: var(--muted); display: block; margin-top: 0.2rem; }

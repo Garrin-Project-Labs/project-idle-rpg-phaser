@@ -21,7 +21,7 @@
 
     <section class="game-layout">
       <div class="stage-shell">
-        <div id="townStage" class="town-stage" aria-label="Clickable town hub">
+        <div id="townStage" class="stage-view town-stage active" aria-label="Clickable town hub">
           <button class="town-hotspot blacksmith" data-town-target="crafting" aria-label="Visit the Blacksmith">
             <span class="building-icon">⚒️</span>
             <strong>Blacksmith</strong>
@@ -48,7 +48,87 @@
             <em id="townRoadBadge"></em>
           </button>
         </div>
-        <div id="game"></div>
+
+        <div id="game" class="stage-view"></div>
+
+        <section id="stage-quests" class="stage-view stage-panel tavern-panel">
+          <button class="back-town" data-town-target="town">← Town</button>
+          <p class="eyebrow">Tavern</p>
+          <h2>Tavern Quests</h2>
+          <p>Small goals that guide the run and pay out when completed.</p>
+          <div id="questList" class="list"></div>
+        </section>
+
+        <section id="stage-crafting" class="stage-view stage-panel blacksmith-panel">
+          <button class="back-town" data-town-target="town">← Town</button>
+          <p class="eyebrow">Blacksmith</p>
+          <h2>Upgrade Gear</h2>
+          <p>Break down unwanted drops into junk, then spend junk and gold to upgrade equipped weapons and armor.</p>
+          <div class="button-row">
+            <button id="upgradeWeapon">Upgrade weapon</button>
+            <button id="upgradeArmor" class="secondary">Upgrade armor</button>
+          </div>
+          <p id="craftingHint" class="hint"></p>
+        </section>
+
+        <section id="stage-shop" class="stage-view stage-panel shop-panel">
+          <button class="back-town" data-town-target="town">← Town</button>
+          <p class="eyebrow">Shop</p>
+          <h2>Supply Shop</h2>
+          <p>Simple one-time upgrades from the town shopkeeper. Nothing fancy yet, just useful boosts.</p>
+          <div id="shopList" class="list"></div>
+        </section>
+
+        <section id="stage-training" class="stage-view stage-panel training-panel">
+          <button class="back-town" data-town-target="town">← Town</button>
+          <p class="eyebrow">Training Yard</p>
+          <h2>Train Stats</h2>
+          <p>Spend gold and junk for permanent stat bumps when gear alone is not enough.</p>
+          <div class="button-row">
+            <button id="trainAttack">Train attack</button>
+            <button id="trainDefense" class="secondary">Train defense</button>
+          </div>
+          <p id="trainingHint" class="hint"></p>
+        </section>
+
+        <section id="stage-character" class="stage-view stage-panel hero-panel">
+          <p class="eyebrow">Hero</p>
+          <h2>Hero Stats</h2>
+          <div class="stat-grid" id="characterStats"></div>
+        </section>
+
+        <section id="stage-weapons" class="stage-view stage-panel hero-panel">
+          <button class="back-town" data-hero-target="stats">← Hero</button>
+          <p class="eyebrow">Hero</p>
+          <h2>Weapons</h2>
+          <p>Monsters can drop tiered weapons. Equip favorites and salvage extras.</p>
+          <div id="weaponList" class="list"></div>
+        </section>
+
+        <section id="stage-armor" class="stage-view stage-panel hero-panel">
+          <button class="back-town" data-hero-target="stats">← Hero</button>
+          <p class="eyebrow">Hero</p>
+          <h2>Armor</h2>
+          <p>Protective nonsense with the same tier glow rules. Equip favorites and salvage extras.</p>
+          <div id="armorList" class="list"></div>
+        </section>
+
+        <section id="stage-inventory" class="stage-view stage-panel hero-panel">
+          <button class="back-town" data-hero-target="stats">← Hero</button>
+          <p class="eyebrow">Hero</p>
+          <h2>Inventory</h2>
+          <div class="stat-grid" id="inventoryStats"></div>
+          <label class="field-label" for="autoSalvageBelow">Auto-salvage drops</label>
+          <select id="autoSalvageBelow">
+            <option value="none">Off — keep all drops</option>
+            <option value="unusual">Break down Common</option>
+            <option value="rare">Break down Common + Unusual</option>
+            <option value="epic">Break down Common + Unusual + Rare</option>
+          </select>
+          <p class="hint">Auto-salvaged drops become junk + gold before they take inventory space.</p>
+          <button id="resetSave" class="danger">Reset local save</button>
+        </section>
+
         <div class="next-prompt" id="nextPrompt">Next: loading…</div>
       </div>
 
@@ -61,7 +141,7 @@
 
         <div id="screen-town" class="screen active">
           <h2>Town</h2>
-          <p>Use the big town map to choose where to go.</p>
+          <p>Pick a building on the main map, or use these shortcuts.</p>
           <div class="quick-grid">
             <button data-town-target="crafting">⚒️ Blacksmith</button>
             <button data-town-target="quests">🍻 Tavern</button>
@@ -86,72 +166,13 @@
 
         <div id="screen-character" class="screen">
           <h2>Hero</h2>
-          <p>Stats, gear, and inventory live here so the main menu stays simple.</p>
+          <p>Open hero screens in the main stage.</p>
           <div class="quick-grid">
             <button data-hero-target="stats">📊 Stats</button>
             <button data-hero-target="weapons">🗡️ Weapons</button>
             <button data-hero-target="armor">🛡️ Armor</button>
             <button data-hero-target="inventory">🎒 Inventory</button>
           </div>
-          <div class="stat-grid" id="characterStats"></div>
-        </div>
-
-        <div id="screen-quests" class="screen">
-          <h2>Tavern Quests</h2>
-          <p>Small goals that guide the run and pay out when completed.</p>
-          <div id="questList" class="list"></div>
-        </div>
-
-        <div id="screen-weapons" class="screen">
-          <h2>Weapons</h2>
-          <p>Monsters can drop tiered weapons. Equip favorites and salvage extras.</p>
-          <div id="weaponList" class="list"></div>
-        </div>
-
-        <div id="screen-armor" class="screen">
-          <h2>Armor</h2>
-          <p>Protective nonsense with the same tier glow rules. Equip favorites and salvage extras.</p>
-          <div id="armorList" class="list"></div>
-        </div>
-
-        <div id="screen-crafting" class="screen">
-          <h2>Blacksmith</h2>
-          <p>Break down unwanted drops into junk, then spend junk and gold to upgrade equipped weapons and armor.</p>
-          <div class="button-row">
-            <button id="upgradeWeapon">Upgrade weapon</button>
-            <button id="upgradeArmor" class="secondary">Upgrade armor</button>
-          </div>
-          <p id="craftingHint" class="hint"></p>
-        </div>
-
-        <div id="screen-shop" class="screen">
-          <h2>Shop</h2>
-          <p>Simple one-time upgrades from the town shopkeeper. Nothing fancy yet, just useful boosts.</p>
-          <div id="shopList" class="list"></div>
-        </div>
-
-        <div id="screen-training" class="screen">
-          <h2>Training Yard</h2>
-          <p>Spend gold and junk for permanent stat bumps when gear alone is not enough.</p>
-          <div class="button-row">
-            <button id="trainAttack">Train attack</button>
-            <button id="trainDefense" class="secondary">Train defense</button>
-          </div>
-          <p id="trainingHint" class="hint"></p>
-        </div>
-
-        <div id="screen-inventory" class="screen">
-          <h2>Inventory</h2>
-          <div class="stat-grid" id="inventoryStats"></div>
-          <label class="field-label" for="autoSalvageBelow">Auto-salvage drops</label>
-          <select id="autoSalvageBelow">
-            <option value="none">Off — keep all drops</option>
-            <option value="unusual">Break down Common</option>
-            <option value="rare">Break down Common + Unusual</option>
-            <option value="epic">Break down Common + Unusual + Rare</option>
-          </select>
-          <p class="hint">Auto-salvaged drops become junk + gold before they take inventory space.</p>
-          <button id="resetSave" class="danger">Reset local save</button>
         </div>
       </aside>
     </section>
