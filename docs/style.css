@@ -150,17 +150,17 @@ body[data-stage="battle"] #game { position: relative; opacity: 1; }
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  min-width: 7.3rem;
-  min-height: 3rem;
-  padding: 0.34rem 0.48rem;
+  gap: 0.28rem;
+  min-width: 5.8rem;
+  min-height: 2.45rem;
+  padding: 0.24rem 0.4rem;
   text-align: left;
   border-radius: 999px;
   color: var(--ink);
-  background: rgba(26, 16, 22, 0.74);
-  border: 2px solid rgba(255, 239, 176, 0.72);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.28), inset 0 1px rgba(255,255,255,0.22);
-  backdrop-filter: blur(2px);
+  background: rgba(26, 16, 22, 0.62);
+  border: 2px solid rgba(255, 239, 176, 0.62);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.24), inset 0 1px rgba(255,255,255,0.18);
+  backdrop-filter: blur(1px);
 }
 
 .town-hotspot::before {
@@ -182,9 +182,9 @@ body[data-stage="battle"] #game { position: relative; opacity: 1; }
 .town-hotspot.blacksmith { left: 9.8%; top: 26%; }
 .town-hotspot.tavern { left: 39%; top: 18%; }
 .town-hotspot.shop { right: 7.5%; top: 17%; }
-.town-hotspot.training { right: 12%; bottom: 16%; }
-.town-hotspot.road { left: 40%; bottom: 24%; }
-.town-hotspot strong { font-family: Georgia, serif; font-size: 0.95rem; line-height: 1; }
+.town-hotspot.training { right: 13.5%; bottom: 20%; }
+.town-hotspot.road { left: 45%; bottom: 18%; }
+.town-hotspot strong { font-family: Georgia, serif; font-size: 0.82rem; line-height: 1; }
 .town-hotspot em {
   position: absolute;
   left: 50%;
@@ -200,7 +200,7 @@ body[data-stage="battle"] #game { position: relative; opacity: 1; }
   font-style: normal;
 }
 .town-hotspot em:empty { display: none; }
-.building-icon { font-size: 1.5rem; }
+.building-icon { font-size: 1.26rem; }
 
 .panel { padding: 1rem; }
 .side-panel { max-height: 585px; overflow: auto; }

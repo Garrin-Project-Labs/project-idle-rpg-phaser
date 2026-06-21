@@ -615,6 +615,16 @@ function shopCard(item) {
     </div>`;
 }
 
+function shortLogLine(message) {
+  return message
+    .replace('Auto-salvaged', 'Salvaged')
+    .replace('Inventory full: auto-salvaged', 'Full: salvaged')
+    .replace('A ', '')
+    .replace(' shuffles into bonking range.', ' appeared.')
+    .replace('Battle started. Menus are safe; bonking continues.', 'Battle started.')
+    .replace('Battle is paused.', 'Battle paused.');
+}
+
 function townBadgeText() {
   const readyQuests = QUESTS.filter(q => questStatus(q) === 'ready').length;
   const weaponCost = currentUpgradeCost('weapon');
@@ -708,7 +718,7 @@ function render() {
   document.querySelector('#upgradeArmor').disabled = state.gold < armorCost.gold || state.junk < armorCost.junk;
 
   document.querySelector('#combatLog').innerHTML = state.log.map(item => `<li>${item}</li>`).join('');
-  document.querySelector('#miniCombatLog').innerHTML = state.log.slice(0, 5).map(item => `<li>${item}</li>`).join('');
+  document.querySelector('#miniCombatLog').innerHTML = state.log.slice(0, 3).map(item => `<li>${shortLogLine(item)}</li>`).join('');
   document.querySelector('#nextPrompt').textContent = nextPromptText();
 
   const zoneSelect = document.querySelector('#zoneSelect');
