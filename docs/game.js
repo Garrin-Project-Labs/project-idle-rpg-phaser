@@ -1,5 +1,5 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const MAX_WEAPONS = 14;
@@ -35,6 +35,8 @@ const ZONES = [
     unlockLevel: 1,
     palette: { sky: '#25345f', ground: '#2f6f5f', path: '#214c43', enemy: '#ff6b7a', accent: '#7ee081' },
     dropChance: 0.18,
+    bossKillsRequired: 10,
+    boss: { name: 'Queen Picnic Ant', hp: 90, attack: 7, exp: 36, gold: 28, junk: 8, artKey: 'enemy-suspicious-ant', unlocks: 'Abandoned Mall Arcade' },
     weaponPool: ['cracked-bat', 'yo-yo', 'frying-pan', 'garden-rake', 'rubber-chicken'],
     armorPool: ['hoodie', 'cardboard-shield', 'bike-helmet'],
     enemies: [
@@ -50,6 +52,8 @@ const ZONES = [
     unlockLevel: 4,
     palette: { sky: '#211a3d', ground: '#563071', path: '#3d2358', enemy: '#77b7ff', accent: '#ffcc5c' },
     dropChance: 0.22,
+    bossKillsRequired: 14,
+    boss: { name: 'Arcade Prize King', hp: 190, attack: 14, exp: 92, gold: 70, junk: 16, artKey: 'enemy-possessed-prize-claw', unlocks: 'Haunted Office Park' },
     weaponPool: ['plastic-sword', 'bottle-rocket', 'arcade-stool', 'soda-straw', 'laser-pointer'],
     armorPool: ['varsity-jacket', 'mall-cop-vest', 'soda-tab-mail'],
     enemies: [
@@ -65,6 +69,8 @@ const ZONES = [
     unlockLevel: 8,
     palette: { sky: '#1b2632', ground: '#596273', path: '#343c49', enemy: '#d98bff', accent: '#b7dcff' },
     dropChance: 0.25,
+    bossKillsRequired: 18,
+    boss: { name: 'Executive Meeting Ooze', hp: 340, attack: 24, exp: 190, gold: 130, junk: 30, artKey: 'enemy-meeting-ooze', unlocks: 'Dusty Pantry Crypt' },
     weaponPool: ['stapler', 'keyboard', 'rolling-chair', 'coffee-mug', 'briefcase'],
     armorPool: ['tie-of-denial', 'printer-toner-plate', 'conference-badge'],
     enemies: [
@@ -80,6 +86,8 @@ const ZONES = [
     unlockLevel: 12,
     palette: { sky: '#4a2f25', ground: '#8a6942', path: '#5f3c2e', enemy: '#d88952', accent: '#f0cf75' },
     dropChance: 0.28,
+    bossKillsRequired: 22,
+    boss: { name: 'Ancient Condiment Lich', hp: 560, attack: 36, exp: 340, gold: 220, junk: 48, artKey: 'enemy-forklifted-pickle-jar', unlocks: 'Royal Sewer Scriptorium' },
     weaponPool: ['frying-pan', 'coffee-mug', 'rubber-chicken', 'soda-straw', 'bottle-rocket'],
     armorPool: ['hoodie', 'soda-tab-mail', 'tie-of-denial'],
     enemies: [
@@ -95,6 +103,8 @@ const ZONES = [
     unlockLevel: 16,
     palette: { sky: '#18332f', ground: '#315c52', path: '#223f3d', enemy: '#9fd0a0', accent: '#c6e6d0' },
     dropChance: 0.31,
+    bossKillsRequired: 26,
+    boss: { name: 'Royal Rat Chancellor', hp: 820, attack: 50, exp: 560, gold: 360, junk: 76, artKey: 'enemy-crowned-sewer-rat', unlocks: 'bragging rights' },
     weaponPool: ['briefcase', 'stapler', 'keyboard', 'garden-rake', 'plastic-sword'],
     armorPool: ['printer-toner-plate', 'conference-badge', 'mall-cop-vest'],
     enemies: [
@@ -197,6 +207,8 @@ function freshSave() {
     gold: 0,
     junk: 0,
     kills: 0,
+    zoneKills: {},
+    defeatedBosses: [],
     dropsFound: 0,
     maxWeapons: MAX_WEAPONS,
     maxArmors: MAX_ARMORS,
@@ -272,12 +284,15 @@ function loadGame() {
     merged.log = Array.isArray(loaded.log) ? loaded.log.slice(0, 12) : [];
     merged.completedQuests = Array.isArray(loaded.completedQuests) ? loaded.completedQuests : [];
     merged.claimedQuests = Array.isArray(loaded.claimedQuests) ? loaded.claimedQuests : [];
+    merged.defeatedBosses = Array.isArray(loaded.defeatedBosses) ? loaded.defeatedBosses : [];
+    merged.zoneKills = loaded.zoneKills && typeof loaded.zoneKills === 'object' ? loaded.zoneKills : {};
     merged.purchasedShopItems = Array.isArray(loaded.purchasedShopItems) ? loaded.purchasedShopItems : [];
     merged.training = loaded.training && typeof loaded.training === 'object' ? { attack: loaded.training.attack || 0, defense: loaded.training.defense || 0 } : { attack: 0, defense: 0 };
     merged.dropsFound = Number.isFinite(loaded.dropsFound) ? loaded.dropsFound : 0;
     merged.maxWeapons = loadedMaxWeapons;
     merged.maxArmors = loadedMaxArmors;
     if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
+    if (!canEnterZone(ZONES.find(z => z.id === merged.selectedZone), merged)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
     return merged;
   } catch {
@@ -320,6 +335,34 @@ function currentZone() {
   return ZONES.find(z => z.id === state.selectedZone) || ZONES[0];
 }
 
+function zoneIndex(zoneId) {
+  return ZONES.findIndex(z => z.id === zoneId);
+}
+
+function nextZoneAfter(zoneId) {
+  const index = zoneIndex(zoneId);
+  return index >= 0 ? ZONES[index + 1] : null;
+}
+
+function zoneBossDefeated(zoneId, gameState = state) {
+  return gameState.defeatedBosses.includes(zoneId);
+}
+
+function zoneKills(zoneId) {
+  return state.zoneKills?.[zoneId] || 0;
+}
+
+function bossReady(zone = currentZone()) {
+  return !zoneBossDefeated(zone.id) && zoneKills(zone.id) >= zone.bossKillsRequired;
+}
+
+function canEnterZone(zone, gameState = state) {
+  if (!zone) return false;
+  if (zone.id === ZONES[0].id) return true;
+  const previous = ZONES[zoneIndex(zone.id) - 1];
+  return Boolean(previous && zoneBossDefeated(previous.id, gameState));
+}
+
 function randomEnemy(zone = currentZone()) {
   return zone.enemies[Math.floor(Math.random() * zone.enemies.length)];
 }
@@ -327,9 +370,22 @@ function randomEnemy(zone = currentZone()) {
 function spawnEnemy(targetState = state, announce = true) {
   const zone = ZONES.find(z => z.id === targetState.selectedZone) || ZONES[0];
   const enemy = structuredClone(randomEnemy(zone));
+  enemy.isBoss = false;
   targetState.currentEnemy = enemy;
   targetState.enemyHp = enemy.hp;
   if (announce) addLog(`A ${enemy.name} shuffles into bonking range.`);
+}
+
+function startBossFight() {
+  const zone = currentZone();
+  if (!bossReady(zone)) return;
+  const boss = structuredClone(zone.boss);
+  boss.isBoss = true;
+  boss.zoneId = zone.id;
+  state.currentEnemy = boss;
+  state.enemyHp = boss.hp;
+  state.battleRunning = true;
+  addLog(`Boss check! ${boss.name} blocks the road to ${boss.unlocks}.`);
 }
 
 function pickTier() {
@@ -405,8 +461,16 @@ function gainRewards(enemy, multiplier = 1) {
   state.gold += gold;
   state.junk += junk;
   state.kills += 1;
-  addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
-  maybeDropEquipment(zone, multiplier);
+  if (enemy.isBoss) {
+    if (!state.defeatedBosses.includes(zone.id)) state.defeatedBosses.push(zone.id);
+    addLog(`Boss defeated: ${enemy.name}! ${enemy.unlocks} unlocked. +${exp} EXP, +${gold} gold, +${junk} junk.`);
+    state.hp = state.maxHp;
+  } else {
+    state.zoneKills[zone.id] = zoneKills(zone.id) + 1;
+    addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
+    maybeDropEquipment(zone, multiplier);
+    if (state.zoneKills[zone.id] === zone.bossKillsRequired) addLog(`Boss ready in ${zone.name}: ${zone.boss.name}.`);
+  }
   checkLevelUps();
   checkQuestCompletion();
 }
@@ -542,7 +606,16 @@ function applyOfflineProgress() {
 }
 
 function unlockedZones() {
-  return ZONES.filter(z => state.level >= z.unlockLevel);
+  return ZONES.filter(z => state.level >= z.unlockLevel && canEnterZone(z));
+}
+
+function bossSummary(zone = currentZone()) {
+  const nextZone = nextZoneAfter(zone.id);
+  if (zoneBossDefeated(zone.id)) return nextZone ? `${zone.boss.name} defeated. ${nextZone.name} is open.` : `${zone.boss.name} defeated. You cleared the current world!`;
+  const kills = zoneKills(zone.id);
+  const needed = zone.bossKillsRequired;
+  if (kills >= needed) return `${zone.boss.name} is ready. Beat this boss to unlock ${zone.boss.unlocks}.`;
+  return `Progress check: defeat ${needed - kills} more monster${needed - kills === 1 ? '' : 's'} in this zone to reveal ${zone.boss.name}.`;
 }
 
 function mainScreenFor(screen) {
@@ -647,10 +720,13 @@ function nextPromptText() {
   if (state.hp <= 0) return 'Next: Rest at the battle panel, then restart auto-battle.';
   const readyQuests = QUESTS.filter(q => questStatus(q) === 'ready');
   if (readyQuests.length) return `Next: Claim ${readyQuests.length} reward${readyQuests.length === 1 ? '' : 's'} at the Tavern.`;
+  if (bossReady()) return `Next: Challenge ${currentZone().boss.name} to unlock ${currentZone().boss.unlocks}.`;
   const weaponCost = currentUpgradeCost('weapon');
   if (state.gold >= weaponCost.gold && state.junk >= weaponCost.junk) return 'Next: Visit the Blacksmith and upgrade your weapon.';
   const armorCost = currentUpgradeCost('armor');
   if (state.gold >= armorCost.gold && state.junk >= armorCost.junk) return 'Next: Visit the Blacksmith and upgrade your armor.';
+  const nextLockedByBoss = nextZoneAfter(currentZone().id);
+  if (nextLockedByBoss && state.level >= nextLockedByBoss.unlockLevel && !canEnterZone(nextLockedByBoss)) return `Next: ${bossSummary(currentZone())}`;
   const nextZone = ZONES.find(z => state.level < z.unlockLevel);
   if (nextZone) return `Next: Keep battling toward level ${nextZone.unlockLevel} to unlock ${nextZone.name}.`;
   if (!state.battleRunning) return 'Next: Start auto-battle from the Road Sign.';
@@ -675,8 +751,12 @@ function render() {
     stat('Enemy', enemyText),
     stat('Attack', totalAttack()),
     stat('Defense', totalDefense()),
+    stat('Zone progress', zoneBossDefeated(zone.id) ? 'Boss defeated' : `${Math.min(zoneKills(zone.id), zone.bossKillsRequired)}/${zone.bossKillsRequired} to boss`),
     stat('Zone theme', zone.theme)
   ].join('');
+
+  document.querySelector('#bossSummary').textContent = bossSummary(zone);
+  document.querySelector('#bossButton').disabled = !bossReady(zone) || state.currentEnemy?.isBoss;
 
   document.querySelector('#characterStats').innerHTML = [
     stat('Level', state.level),
@@ -803,7 +883,20 @@ function bindUi() {
     render();
   });
 
+  document.querySelector('#bossButton').addEventListener('click', () => {
+    startBossFight();
+    saveGame();
+    render();
+  });
+
   document.querySelector('#zoneSelect').addEventListener('change', event => {
+    const requestedZone = ZONES.find(z => z.id === event.target.value);
+    if (!canEnterZone(requestedZone)) {
+      addLog(`Road blocked. Beat the previous zone boss before entering ${requestedZone?.name || 'that zone'}.`);
+      event.target.value = state.selectedZone;
+      render();
+      return;
+    }
     state.selectedZone = event.target.value;
     spawnEnemy();
     addLog(`Moved battle target to ${currentZone().name}.`);
@@ -929,6 +1022,7 @@ function strokeBezier(g, x1, y1, c1x, c1y, c2x, c2y, x2, y2, steps = 12) {
 }
 
 function enemyAssetKey(enemy) {
+  if (enemy?.artKey) return enemy.artKey;
   return `enemy-${(enemy?.name || 'suspicious-ant').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 }
 
