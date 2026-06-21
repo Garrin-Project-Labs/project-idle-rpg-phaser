@@ -1,10 +1,24 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const MAX_WEAPONS = 14;
 const MAX_ARMORS = 12;
 const TIER_ORDER = ['common', 'unusual', 'rare', 'epic'];
+
+const QUESTS = [
+  { id: 'first-bonks', name: 'First Bonks', description: 'Defeat 5 monsters in any zone.', metric: 'kills', target: 5, rewards: { gold: 18, junk: 6, exp: 12 } },
+  { id: 'backyard-cleanup', name: 'Backyard Cleanup', description: 'Defeat 20 monsters and prove the bugs are mostly unfair.', metric: 'kills', target: 20, rewards: { gold: 55, junk: 18, exp: 35 } },
+  { id: 'gear-check', name: 'Gear Check', description: 'Find 3 gear drops from monsters.', metric: 'dropsFound', target: 3, rewards: { gold: 35, junk: 25, exp: 20 } },
+  { id: 'mall-scout', name: 'Scout the Mall Arcade', description: 'Reach level 4 to unlock the Abandoned Mall Arcade.', metric: 'level', target: 4, rewards: { gold: 80, junk: 20, exp: 45 } },
+  { id: 'steady-hero', name: 'Steady Hero', description: 'Defeat 60 monsters total.', metric: 'kills', target: 60, rewards: { gold: 160, junk: 55, exp: 110 } }
+];
+
+const SHOP_ITEMS = [
+  { id: 'bigger-pack', name: 'Bigger Backpack', description: 'Carry +4 weapons and +4 armor pieces.', cost: { gold: 75, junk: 20 } },
+  { id: 'field-snacks', name: 'Field Snacks', description: 'Increase max HP by 12.', cost: { gold: 55, junk: 8 } },
+  { id: 'lucky-bauble', name: 'Lucky Bauble', description: 'Slightly improves gear drop chance forever.', cost: { gold: 120, junk: 35 } }
+];
 
 const TIERS = {
   common: { name: 'Common', color: '#cbbd9b', attackBonus: 0, defenseBonus: 0, dropWeight: 66, salvage: 3, upgradeGold: 10, upgradeJunk: 4 },
@@ -183,6 +197,13 @@ function freshSave() {
     gold: 0,
     junk: 0,
     kills: 0,
+    dropsFound: 0,
+    maxWeapons: MAX_WEAPONS,
+    maxArmors: MAX_ARMORS,
+    completedQuests: [],
+    claimedQuests: [],
+    purchasedShopItems: [],
+    training: { attack: 0, defense: 0 },
     battleRunning: false,
     selectedZone: 'backyard',
     currentEnemy: null,
@@ -238,15 +259,24 @@ function loadGame() {
   try {
     const loaded = JSON.parse(raw);
     const merged = { ...freshSave(), ...loaded, version: SAVE_VERSION };
+    const loadedMaxWeapons = Number.isFinite(loaded.maxWeapons) ? loaded.maxWeapons : MAX_WEAPONS;
+    const loadedMaxArmors = Number.isFinite(loaded.maxArmors) ? loaded.maxArmors : MAX_ARMORS;
     merged.weapons = Array.isArray(loaded.weapons) && loaded.weapons.length
-      ? loaded.weapons.map(normalizeWeapon).slice(0, MAX_WEAPONS)
+      ? loaded.weapons.map(normalizeWeapon).slice(0, loadedMaxWeapons)
       : structuredClone(STARTER_WEAPONS);
     merged.armors = Array.isArray(loaded.armors) && loaded.armors.length
-      ? loaded.armors.map(normalizeArmor).slice(0, MAX_ARMORS)
+      ? loaded.armors.map(normalizeArmor).slice(0, loadedMaxArmors)
       : structuredClone(STARTER_ARMORS);
     if (!merged.weapons.some(w => w.id === merged.equippedWeaponId)) merged.equippedWeaponId = merged.weapons[0].id;
     if (!merged.armors.some(a => a.id === merged.equippedArmorId)) merged.equippedArmorId = merged.armors[0].id;
     merged.log = Array.isArray(loaded.log) ? loaded.log.slice(0, 12) : [];
+    merged.completedQuests = Array.isArray(loaded.completedQuests) ? loaded.completedQuests : [];
+    merged.claimedQuests = Array.isArray(loaded.claimedQuests) ? loaded.claimedQuests : [];
+    merged.purchasedShopItems = Array.isArray(loaded.purchasedShopItems) ? loaded.purchasedShopItems : [];
+    merged.training = loaded.training && typeof loaded.training === 'object' ? { attack: loaded.training.attack || 0, defense: loaded.training.defense || 0 } : { attack: 0, defense: 0 };
+    merged.dropsFound = Number.isFinite(loaded.dropsFound) ? loaded.dropsFound : 0;
+    merged.maxWeapons = loadedMaxWeapons;
+    merged.maxArmors = loadedMaxArmors;
     if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
     return merged;
@@ -279,11 +309,11 @@ function equippedArmor() {
 }
 
 function totalAttack() {
-  return state.baseAttack + equippedWeapon().attack;
+  return state.baseAttack + equippedWeapon().attack + (state.training?.attack || 0);
 }
 
 function totalDefense() {
-  return state.baseDefense + equippedArmor().defense;
+  return state.baseDefense + equippedArmor().defense + (state.training?.defense || 0);
 }
 
 function currentZone() {
@@ -347,20 +377,22 @@ function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
     return;
   }
   collection.push(item);
+  state.dropsFound += 1;
   const statText = itemKind === 'weapon' ? `+${item.attack} attack` : `+${item.defense} defense`;
   addLog(`Found ${itemKind}: ${tierName} ${item.name} (${statText}).`);
 }
 
 function maybeDropEquipment(zone, multiplier = 1) {
-  if (Math.random() > zone.dropChance * multiplier) return;
+  const luckyBoost = state.purchasedShopItems?.includes('lucky-bauble') ? 0.06 : 0;
+  if (Math.random() > (zone.dropChance + luckyBoost) * multiplier) return;
   const tier = pickTier();
   const dropsArmor = Math.random() < 0.4;
   if (dropsArmor) {
     const blueprintId = zone.armorPool[Math.floor(Math.random() * zone.armorPool.length)];
-    addEquipmentDrop(createArmor(blueprintId, tier), state.armors, MAX_ARMORS, state.equippedArmorId, 'armor');
+    addEquipmentDrop(createArmor(blueprintId, tier), state.armors, state.maxArmors || MAX_ARMORS, state.equippedArmorId, 'armor');
   } else {
     const blueprintId = zone.weaponPool[Math.floor(Math.random() * zone.weaponPool.length)];
-    addEquipmentDrop(createWeapon(blueprintId, tier), state.weapons, MAX_WEAPONS, state.equippedWeaponId, 'weapon');
+    addEquipmentDrop(createWeapon(blueprintId, tier), state.weapons, state.maxWeapons || MAX_WEAPONS, state.equippedWeaponId, 'weapon');
   }
 }
 
@@ -376,6 +408,7 @@ function gainRewards(enemy, multiplier = 1) {
   addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
   maybeDropEquipment(zone, multiplier);
   checkLevelUps();
+  checkQuestCompletion();
 }
 
 function checkLevelUps() {
@@ -390,6 +423,72 @@ function checkLevelUps() {
     addLog(`Level up! You are now level ${state.level}. HP restored.`);
     needed = expToNext();
   }
+  checkQuestCompletion();
+}
+
+function questProgress(quest) {
+  if (quest.metric === 'level') return state.level;
+  return state[quest.metric] || 0;
+}
+
+function questStatus(quest) {
+  if (state.claimedQuests.includes(quest.id)) return 'claimed';
+  if (state.completedQuests.includes(quest.id) || questProgress(quest) >= quest.target) return 'ready';
+  return 'active';
+}
+
+function checkQuestCompletion() {
+  for (const quest of QUESTS) {
+    if (state.completedQuests.includes(quest.id) || state.claimedQuests.includes(quest.id)) continue;
+    if (questProgress(quest) >= quest.target) {
+      state.completedQuests.push(quest.id);
+      addLog(`Quest ready at the tavern: ${quest.name}.`);
+    }
+  }
+}
+
+function claimQuest(questId) {
+  const quest = QUESTS.find(q => q.id === questId);
+  if (!quest || questStatus(quest) !== 'ready') return;
+  state.completedQuests = state.completedQuests.filter(id => id !== quest.id);
+  state.claimedQuests.push(quest.id);
+  state.gold += quest.rewards.gold || 0;
+  state.junk += quest.rewards.junk || 0;
+  state.exp += quest.rewards.exp || 0;
+  addLog(`Quest complete: ${quest.name}! +${quest.rewards.gold || 0} gold, +${quest.rewards.junk || 0} junk, +${quest.rewards.exp || 0} EXP.`);
+  checkLevelUps();
+}
+
+function trainCost(type) {
+  const ranks = state.training?.[type] || 0;
+  return { gold: 35 + ranks * 30, junk: 8 + ranks * 7 };
+}
+
+function trainStat(type) {
+  const cost = trainCost(type);
+  if (state.gold < cost.gold || state.junk < cost.junk) return;
+  state.gold -= cost.gold;
+  state.junk -= cost.junk;
+  state.training[type] = (state.training[type] || 0) + 1;
+  addLog(type === 'attack' ? 'Training paid off: permanent +1 attack.' : 'Training paid off: permanent +1 defense.');
+}
+
+function buyShopItem(itemId) {
+  const item = SHOP_ITEMS.find(i => i.id === itemId);
+  if (!item || state.purchasedShopItems.includes(item.id)) return;
+  if (state.gold < item.cost.gold || state.junk < item.cost.junk) return;
+  state.gold -= item.cost.gold;
+  state.junk -= item.cost.junk;
+  state.purchasedShopItems.push(item.id);
+  if (item.id === 'bigger-pack') {
+    state.maxWeapons += 4;
+    state.maxArmors += 4;
+  }
+  if (item.id === 'field-snacks') {
+    state.maxHp += 12;
+    state.hp += 12;
+  }
+  addLog(`Bought ${item.name}.`);
 }
 
 function battleTick(multiplier = 1) {
@@ -477,6 +576,48 @@ function equipmentCard(item, equipped, type) {
     </div>`;
 }
 
+function questCard(quest) {
+  const progress = Math.min(questProgress(quest), quest.target);
+  const status = questStatus(quest);
+  const rewards = `Reward: ${quest.rewards.gold || 0} gold · ${quest.rewards.junk || 0} junk · ${quest.rewards.exp || 0} EXP`;
+  return `
+    <div class="quest-card ${status}">
+      <div>
+        <strong>${quest.name}</strong>
+        <small>${quest.description}</small>
+        <div class="progress-track" aria-label="${quest.name} progress"><span style="width:${Math.floor((progress / quest.target) * 100)}%"></span></div>
+        <small>${progress}/${quest.target} · ${rewards}</small>
+      </div>
+      <button data-claim-quest="${quest.id}" ${status !== 'ready' ? 'disabled' : ''}>${status === 'claimed' ? 'Claimed' : status === 'ready' ? 'Claim reward' : 'In progress'}</button>
+    </div>`;
+}
+
+function shopCard(item) {
+  const bought = state.purchasedShopItems.includes(item.id);
+  const affordable = state.gold >= item.cost.gold && state.junk >= item.cost.junk;
+  return `
+    <div class="shop-card ${bought ? 'bought' : ''}">
+      <div>
+        <strong>${item.name}</strong>
+        <small>${item.description}</small>
+        <small>Cost: ${item.cost.gold} gold + ${item.cost.junk} junk</small>
+      </div>
+      <button data-buy-shop="${item.id}" ${bought || !affordable ? 'disabled' : ''}>${bought ? 'Bought' : 'Buy'}</button>
+    </div>`;
+}
+
+function townBadgeText() {
+  const readyQuests = QUESTS.filter(q => questStatus(q) === 'ready').length;
+  const weaponCost = currentUpgradeCost('weapon');
+  const armorCost = currentUpgradeCost('armor');
+  const canUpgrade = state.gold >= weaponCost.gold && state.junk >= weaponCost.junk || state.gold >= armorCost.gold && state.junk >= armorCost.junk;
+  const canShop = SHOP_ITEMS.some(item => !state.purchasedShopItems.includes(item.id) && state.gold >= item.cost.gold && state.junk >= item.cost.junk);
+  const atkCost = trainCost('attack');
+  const defCost = trainCost('defense');
+  const canTrain = state.gold >= atkCost.gold && state.junk >= atkCost.junk || state.gold >= defCost.gold && state.junk >= defCost.junk;
+  return { readyQuests, canUpgrade, canShop, canTrain };
+}
+
 function render() {
   const enemy = state.currentEnemy || { name: 'No enemy', hp: 1 };
   const weapon = equippedWeapon();
@@ -512,11 +653,27 @@ function render() {
   document.querySelector('#inventoryStats').innerHTML = [
     stat('Gold', state.gold),
     stat('Junk', state.junk),
-    stat('Weapon space', `${state.weapons.length}/${MAX_WEAPONS}`),
-    stat('Armor space', `${state.armors.length}/${MAX_ARMORS}`),
+    stat('Weapon space', `${state.weapons.length}/${state.maxWeapons || MAX_WEAPONS}`),
+    stat('Armor space', `${state.armors.length}/${state.maxArmors || MAX_ARMORS}`),
     stat('Auto salvage', state.autoSalvageBelow === 'none' ? 'Off' : `Below ${TIERS[state.autoSalvageBelow].name}`),
     stat('Offline cap', '8 hours')
   ].join('');
+
+  document.querySelector('#questList').innerHTML = QUESTS.map(questCard).join('');
+  document.querySelector('#shopList').innerHTML = SHOP_ITEMS.map(shopCard).join('');
+
+  const atkCost = trainCost('attack');
+  const defCost = trainCost('defense');
+  document.querySelector('#trainingHint').textContent = `Attack rank ${state.training.attack}: ${atkCost.gold} gold + ${atkCost.junk} junk. Defense rank ${state.training.defense}: ${defCost.gold} gold + ${defCost.junk} junk.`;
+  document.querySelector('#trainAttack').disabled = state.gold < atkCost.gold || state.junk < atkCost.junk;
+  document.querySelector('#trainDefense').disabled = state.gold < defCost.gold || state.junk < defCost.junk;
+
+  const badges = townBadgeText();
+  document.querySelector('#townBlacksmithBadge').textContent = badges.canUpgrade ? 'Upgrade ready' : '';
+  document.querySelector('#townTavernBadge').textContent = badges.readyQuests ? `${badges.readyQuests} quest${badges.readyQuests === 1 ? '' : 's'} ready` : '';
+  document.querySelector('#townShopBadge').textContent = badges.canShop ? 'New buy' : '';
+  document.querySelector('#townTrainingBadge').textContent = badges.canTrain ? 'Can train' : '';
+  document.querySelector('#townRoadBadge').textContent = state.battleRunning ? 'Battle running' : 'Paused';
 
   document.querySelector('#weaponList').innerHTML = state.weapons.map(w => equipmentCard(w, w.id === state.equippedWeaponId, 'weapon')).join('');
   document.querySelector('#armorList').innerHTML = state.armors.map(a => equipmentCard(a, a.id === state.equippedArmorId, 'armor')).join('');
@@ -579,6 +736,10 @@ function bindUi() {
     btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
   });
 
+  document.querySelectorAll('[data-town-target]').forEach(btn => {
+    btn.addEventListener('click', () => switchScreen(btn.dataset.townTarget));
+  });
+
   document.querySelector('#toggleBattle').addEventListener('click', () => {
     state.battleRunning = !state.battleRunning;
     if (!state.currentEnemy) spawnEnemy();
@@ -634,6 +795,34 @@ function bindUi() {
 
   document.querySelector('#upgradeArmor').addEventListener('click', () => {
     upgradeEquipped('armor');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#questList').addEventListener('click', event => {
+    const questId = event.target.dataset.claimQuest;
+    if (!questId) return;
+    claimQuest(questId);
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#shopList').addEventListener('click', event => {
+    const itemId = event.target.dataset.buyShop;
+    if (!itemId) return;
+    buyShopItem(itemId);
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#trainAttack').addEventListener('click', () => {
+    trainStat('attack');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#trainDefense').addEventListener('click', () => {
+    trainStat('defense');
     saveGame();
     render();
   });

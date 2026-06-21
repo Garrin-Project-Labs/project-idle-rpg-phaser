@@ -24,15 +24,56 @@
 
       <aside class="panel">
         <nav class="menu" aria-label="Main menu">
-          <button class="menu-button active" data-screen="battle">Battle</button>
+          <button class="menu-button active" data-screen="town">Town</button>
+          <button class="menu-button" data-screen="battle">Battle</button>
           <button class="menu-button" data-screen="character">Character</button>
+          <button class="menu-button" data-screen="quests">Quests</button>
           <button class="menu-button" data-screen="weapons">Weapons</button>
           <button class="menu-button" data-screen="armor">Armor</button>
           <button class="menu-button" data-screen="crafting">Crafting</button>
+          <button class="menu-button" data-screen="shop">Shop</button>
+          <button class="menu-button" data-screen="training">Training</button>
           <button class="menu-button" data-screen="inventory">Inventory</button>
         </nav>
 
-        <div id="screen-battle" class="screen active">
+        <div id="screen-town" class="screen active">
+          <h2>Town</h2>
+          <p>Click a building to visit it. Battle can keep running while you shop, train, and turn in quests.</p>
+          <div class="town-map" aria-label="Clickable town buildings">
+            <button class="town-building blacksmith" data-town-target="crafting">
+              <span class="building-icon">⚒️</span>
+              <strong>Blacksmith</strong>
+              <small>Upgrade equipped gear</small>
+              <em id="townBlacksmithBadge"></em>
+            </button>
+            <button class="town-building tavern" data-town-target="quests">
+              <span class="building-icon">🍻</span>
+              <strong>Tavern</strong>
+              <small>Check quests and rewards</small>
+              <em id="townTavernBadge"></em>
+            </button>
+            <button class="town-building shop" data-town-target="shop">
+              <span class="building-icon">🎒</span>
+              <strong>Shop</strong>
+              <small>Buy simple boosts</small>
+              <em id="townShopBadge"></em>
+            </button>
+            <button class="town-building training" data-town-target="training">
+              <span class="building-icon">🎯</span>
+              <strong>Training Yard</strong>
+              <small>Spend resources on stats</small>
+              <em id="townTrainingBadge"></em>
+            </button>
+            <button class="town-building road" data-town-target="battle">
+              <span class="building-icon">🛤️</span>
+              <strong>Road Sign</strong>
+              <small>Choose zones and fight</small>
+              <em id="townRoadBadge"></em>
+            </button>
+          </div>
+        </div>
+
+        <div id="screen-battle" class="screen">
           <h2>Battle</h2>
           <p id="battleSummary">Preparing the training yard…</p>
           <div class="button-row">
@@ -47,6 +88,12 @@
         <div id="screen-character" class="screen">
           <h2>Character</h2>
           <div class="stat-grid" id="characterStats"></div>
+        </div>
+
+        <div id="screen-quests" class="screen">
+          <h2>Tavern Quests</h2>
+          <p>Small goals that guide the run and pay out when completed.</p>
+          <div id="questList" class="list"></div>
         </div>
 
         <div id="screen-weapons" class="screen">
@@ -69,6 +116,22 @@
             <button id="upgradeArmor" class="secondary">Upgrade equipped armor</button>
           </div>
           <p id="craftingHint" class="hint"></p>
+        </div>
+
+        <div id="screen-shop" class="screen">
+          <h2>Shop</h2>
+          <p>Simple one-time upgrades from the town shopkeeper. Nothing fancy yet, just useful boosts.</p>
+          <div id="shopList" class="list"></div>
+        </div>
+
+        <div id="screen-training" class="screen">
+          <h2>Training Yard</h2>
+          <p>Spend gold and junk for permanent stat bumps when gear alone is not enough.</p>
+          <div class="button-row">
+            <button id="trainAttack">Train attack</button>
+            <button id="trainDefense" class="secondary">Train defense</button>
+          </div>
+          <p id="trainingHint" class="hint"></p>
         </div>
 
         <div id="screen-inventory" class="screen">
