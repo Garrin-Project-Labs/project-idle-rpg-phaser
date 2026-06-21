@@ -125,33 +125,10 @@ body[data-stage="battle"] #game { position: relative; opacity: 1; }
   border: 3px solid color-mix(in srgb, var(--border) 80%, white);
   border-radius: 1.35rem;
   overflow: hidden;
-  padding: 1.1rem;
-  background:
-    radial-gradient(ellipse at 50% 92%, rgba(255, 207, 104, 0.32), transparent 38%),
-    linear-gradient(#27385f 0 33%, #347055 33% 74%, #4f7f45 74%);
+  padding: 0;
+  background: url("./assets/production/town-hub-background.png") center / 100% 100% no-repeat;
   box-shadow: 0 20px 55px rgba(0,0,0,0.34), 0 0 0 6px rgba(255,255,255,0.035);
 }
-
-.town-stage::before {
-  content: "";
-  position: absolute;
-  left: -8%; right: -8%; bottom: 9rem;
-  height: 7.2rem;
-  transform: rotate(-5deg);
-  background: rgba(238, 197, 121, 0.42);
-  border-block: 3px solid rgba(80, 50, 28, 0.2);
-}
-
-.town-skyline {
-  position: relative;
-  z-index: 1;
-  width: min(28rem, 64%);
-  padding: 1rem;
-  border-radius: 1.2rem;
-  background: rgba(30, 21, 39, 0.72);
-  border: 1px solid rgba(255,255,255,0.14);
-}
-.town-skyline p:last-child { margin-bottom: 0; color: var(--muted); }
 
 .next-prompt {
   position: absolute;
@@ -168,43 +145,62 @@ body[data-stage="battle"] #game { position: relative; opacity: 1; }
   box-shadow: 0 10px 26px rgba(0,0,0,0.28);
 }
 
-.town-building {
+.town-hotspot {
   position: absolute;
   z-index: 2;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 0.14rem;
-  width: 12.6rem;
-  min-height: 8.8rem;
-  padding: 0.8rem;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 7.3rem;
+  min-height: 3rem;
+  padding: 0.34rem 0.48rem;
   text-align: left;
-  border-radius: 1rem 1rem 0.45rem 0.45rem;
-  background: linear-gradient(#8fd0ff 0 18%, #f1c06d 18% 46%, #8e5844 46%);
-  box-shadow: 0 7px 0 #4f3127, 0 18px 26px rgba(0,0,0,0.26), inset 0 1px rgba(255,255,255,0.45);
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(26, 16, 22, 0.74);
+  border: 2px solid rgba(255, 239, 176, 0.72);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28), inset 0 1px rgba(255,255,255,0.22);
+  backdrop-filter: blur(2px);
 }
 
-.town-building:hover { transform: translateY(-3px) scale(1.015); }
-.town-building.blacksmith { left: 5%; bottom: 12.2rem; background: linear-gradient(#746175 0 20%, #f0b25d 20% 45%, #70413b 45%); }
-.town-building.tavern { right: 6%; bottom: 12.7rem; width: 14rem; background: linear-gradient(#5f3e4f 0 20%, #f3cb73 20% 45%, #8d5640 45%); }
-.town-building.shop { left: 8%; bottom: 3.8rem; width: 11.2rem; background: linear-gradient(#4f7ec0 0 20%, #f4d06f 20% 45%, #79573e 45%); }
-.town-building.training { left: 38%; bottom: 4.4rem; width: 11.8rem; background: linear-gradient(#476e45 0 20%, #f0c16a 20% 45%, #78503d 45%); }
-.town-building.road { right: 7%; bottom: 3.7rem; width: 11.8rem; background: linear-gradient(#755b42 0 20%, #ffd37b 20% 45%, #5a4a37 45%); }
-.town-building strong { font-family: Georgia, serif; font-size: 1.16rem; }
-.town-building small { color: #352015; font-weight: 850; line-height: 1.15; }
-.town-building em {
+.town-hotspot::before {
+  content: "";
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: inherit;
+  border: 2px dashed transparent;
+}
+
+.town-hotspot:hover, .town-hotspot:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  background: rgba(40, 24, 44, 0.9);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.town-hotspot:hover::before, .town-hotspot:focus-visible::before { border-color: rgba(255, 207, 104, 0.56); }
+.town-hotspot.blacksmith { left: 9.8%; top: 26%; }
+.town-hotspot.tavern { left: 39%; top: 18%; }
+.town-hotspot.shop { right: 7.5%; top: 17%; }
+.town-hotspot.training { right: 12%; bottom: 16%; }
+.town-hotspot.road { left: 40%; bottom: 24%; }
+.town-hotspot strong { font-family: Georgia, serif; font-size: 0.95rem; line-height: 1; }
+.town-hotspot em {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.24rem);
+  transform: translateX(-50%);
+  white-space: nowrap;
   min-height: 1.2rem;
-  margin-top: 0.25rem;
   padding: 0.08rem 0.48rem;
   border-radius: 999px;
-  background: rgba(26, 16, 22, 0.82);
+  background: rgba(26, 16, 22, 0.88);
   color: var(--accent-2);
   font-size: 0.72rem;
   font-style: normal;
 }
-.town-building em:empty { display: none; }
-.building-icon { font-size: 1.7rem; }
+.town-hotspot em:empty { display: none; }
+.building-icon { font-size: 1.5rem; }
 
 .panel { padding: 1rem; }
 .side-panel { max-height: 585px; overflow: auto; }
@@ -251,10 +247,11 @@ select { width: 100%; background: #fff2bd; }
 
 @media (max-width: 640px) {
   .shell { width: min(100% - 0.75rem, 1220px); }
-  .town-building { position: relative; left: auto !important; right: auto !important; bottom: auto !important; width: 100% !important; min-height: 6.8rem; }
-  .town-stage { display: grid; gap: 0.7rem; padding-bottom: 5rem; }
-  .town-stage::before { display: none; }
-  .town-skyline { width: 100%; }
+  .town-stage { min-height: 75vw; }
+  .town-hotspot { min-width: auto; min-height: 2.4rem; padding: 0.2rem 0.34rem; }
+  .town-hotspot strong { display: none; }
+  .town-hotspot em { font-size: 0.62rem; }
+  .building-icon { font-size: 1.2rem; }
   .equipment-card, .quest-card, .shop-card { grid-template-columns: 1fr; }
   .equipment-actions { justify-content: flex-start; }
   .stat-grid, .quick-grid, .menu { grid-template-columns: 1fr; }

@@ -22,39 +22,29 @@
     <section class="game-layout">
       <div class="stage-shell">
         <div id="townStage" class="town-stage" aria-label="Clickable town hub">
-          <div class="town-skyline">
-            <p class="eyebrow">Main town</p>
-            <h2>Click a building</h2>
-            <p>Town is the home base. Battle can keep running while you manage quests, upgrades, training, and supplies.</p>
-          </div>
-          <button class="town-building blacksmith" data-town-target="crafting">
+          <button class="town-hotspot blacksmith" data-town-target="crafting" aria-label="Visit the Blacksmith">
             <span class="building-icon">⚒️</span>
             <strong>Blacksmith</strong>
-            <small>Upgrade equipped gear</small>
             <em id="townBlacksmithBadge"></em>
           </button>
-          <button class="town-building tavern" data-town-target="quests">
+          <button class="town-hotspot tavern" data-town-target="quests" aria-label="Visit the Tavern">
             <span class="building-icon">🍻</span>
             <strong>Tavern</strong>
-            <small>Claim quest rewards</small>
             <em id="townTavernBadge"></em>
           </button>
-          <button class="town-building shop" data-town-target="shop">
+          <button class="town-hotspot shop" data-town-target="shop" aria-label="Visit the Shop">
             <span class="building-icon">🎒</span>
             <strong>Shop</strong>
-            <small>Buy simple boosts</small>
             <em id="townShopBadge"></em>
           </button>
-          <button class="town-building training" data-town-target="training">
+          <button class="town-hotspot training" data-town-target="training" aria-label="Visit the Training Yard">
             <span class="building-icon">🎯</span>
             <strong>Training Yard</strong>
-            <small>Permanent stats</small>
             <em id="townTrainingBadge"></em>
           </button>
-          <button class="town-building road" data-town-target="battle">
+          <button class="town-hotspot road" data-town-target="battle" aria-label="Go to the Battle Road">
             <span class="building-icon">🛤️</span>
-            <strong>Road Sign</strong>
-            <small>Choose zones and fight</small>
+            <strong>Battle Road</strong>
             <em id="townRoadBadge"></em>
           </button>
         </div>
