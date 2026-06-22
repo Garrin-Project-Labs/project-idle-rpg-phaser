@@ -91,6 +91,7 @@
           <div class="button-row">
             <button id="upgradeWeapon">Upgrade weapon</button>
             <button id="upgradeArmor" class="secondary">Upgrade armor</button>
+            <button id="upgradeAccessory" class="secondary">Upgrade accessory</button>
           </div>
           <p id="craftingHint" class="hint"></p>
         </section>
@@ -111,6 +112,9 @@
           <div class="button-row">
             <button id="trainAttack">Train attack</button>
             <button id="trainDefense" class="secondary">Train defense</button>
+            <button id="trainCrit" class="secondary">Train crit</button>
+            <button id="trainDodge" class="secondary">Train dodge</button>
+            <button id="trainLuck" class="secondary">Train luck</button>
           </div>
           <p id="trainingHint" class="hint"></p>
         </section>
@@ -122,6 +126,7 @@
           <div class="quick-grid hero-quick-grid">
             <button data-hero-target="weapons">🗡️ Weapons</button>
             <button data-hero-target="armor">🛡️ Armor</button>
+            <button data-hero-target="accessories">💍 Accessories</button>
             <button data-hero-target="inventory">🎒 Inventory</button>
           </div>
           <div class="stat-grid" id="characterStats"></div>
@@ -141,6 +146,14 @@
           <h2>Armor</h2>
           <p>Protective nonsense with the same tier glow rules. Equip favorites and salvage extras.</p>
           <div id="armorList" class="list"></div>
+        </section>
+
+        <section id="stage-accessories" class="stage-view stage-panel hero-panel">
+          <button class="back-town" data-hero-target="stats">← Hero</button>
+          <p class="eyebrow">Hero</p>
+          <h2>Accessories</h2>
+          <p>Trinkets add crit chance, dodge chance, and luck. Equip favorites and salvage extras.</p>
+          <div id="accessoryList" class="list"></div>
         </section>
 
         <section id="stage-inventory" class="stage-view stage-panel hero-panel">

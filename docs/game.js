@@ -1,23 +1,30 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const MAX_WEAPONS = 14;
 const MAX_ARMORS = 12;
+const MAX_ACCESSORIES = 10;
 const TIER_ORDER = ['common', 'unusual', 'rare', 'epic'];
 
 const QUESTS = [
+  { id: 'stat-starter', name: 'Find Your Weird Power', description: 'Reach level 3 and unlock your first crit/dodge/luck rhythm.', metric: 'level', target: 3, rewards: { gold: 40, junk: 12, exp: 25 } },
   { id: 'first-bonks', name: 'First Bonks', description: 'Defeat 5 monsters in any zone.', metric: 'kills', target: 5, rewards: { gold: 18, junk: 6, exp: 12 } },
   { id: 'backyard-cleanup', name: 'Backyard Cleanup', description: 'Defeat 20 monsters and prove the bugs are mostly unfair.', metric: 'kills', target: 20, rewards: { gold: 55, junk: 18, exp: 35 } },
   { id: 'gear-check', name: 'Gear Check', description: 'Find 3 gear drops from monsters.', metric: 'dropsFound', target: 3, rewards: { gold: 35, junk: 25, exp: 20 } },
   { id: 'mall-scout', name: 'Scout the Mall Arcade', description: 'Reach level 4 to unlock the Abandoned Mall Arcade.', metric: 'level', target: 4, rewards: { gold: 80, junk: 20, exp: 45 } },
-  { id: 'steady-hero', name: 'Steady Hero', description: 'Defeat 60 monsters total.', metric: 'kills', target: 60, rewards: { gold: 160, junk: 55, exp: 110 } }
+  { id: 'steady-hero', name: 'Steady Hero', description: 'Defeat 60 monsters total.', metric: 'kills', target: 60, rewards: { gold: 160, junk: 55, exp: 110 } },
+  { id: 'trinket-test', name: 'Pocket Magic', description: 'Find 2 accessory drops from monsters.', metric: 'accessoriesFound', target: 2, rewards: { gold: 120, junk: 40, exp: 85 } },
+  { id: 'monster-study', name: 'Monster Study Hall', description: 'Defeat 140 monsters total across the expanded zones.', metric: 'kills', target: 140, rewards: { gold: 320, junk: 90, exp: 260 } },
+  { id: 'level-climber', name: 'Level Climber', description: 'Reach level 20 and become worryingly competent.', metric: 'level', target: 20, rewards: { gold: 650, junk: 180, exp: 500 } }
 ];
 
 const SHOP_ITEMS = [
   { id: 'bigger-pack', name: 'Bigger Backpack', description: 'Carry +4 weapons and +4 armor pieces.', cost: { gold: 75, junk: 20 } },
   { id: 'field-snacks', name: 'Field Snacks', description: 'Increase max HP by 12.', cost: { gold: 55, junk: 8 } },
-  { id: 'lucky-bauble', name: 'Lucky Bauble', description: 'Slightly improves gear drop chance forever.', cost: { gold: 120, junk: 35 } }
+  { id: 'lucky-bauble', name: 'Lucky Bauble', description: 'Slightly improves gear drop chance forever.', cost: { gold: 120, junk: 35 } },
+  { id: 'trinket-box', name: 'Trinket Box', description: 'Carry +4 accessories.', cost: { gold: 140, junk: 45 } },
+  { id: 'training-manual', name: 'Questionable Training Manual', description: 'Permanent +2% crit and +2% dodge.', cost: { gold: 260, junk: 80 } }
 ];
 
 const TIERS = {
@@ -37,12 +44,16 @@ const ZONES = [
     dropChance: 0.18,
     bossKillsRequired: 10,
     boss: { name: 'Queen Picnic Ant', hp: 90, attack: 7, exp: 36, gold: 28, junk: 8, artKey: 'enemy-suspicious-ant', unlocks: 'Abandoned Mall Arcade' },
-    weaponPool: ['cracked-bat', 'yo-yo', 'frying-pan', 'garden-rake', 'rubber-chicken'],
-    armorPool: ['hoodie', 'cardboard-shield', 'bike-helmet'],
+    weaponPool: ['cracked-bat', 'yo-yo', 'frying-pan', 'garden-rake', 'rubber-chicken', 'sprinkler-scepter', 'muddy-shovel'],
+    armorPool: ['hoodie', 'cardboard-shield', 'bike-helmet', 'trash-can-lid', 'bug-shell-vest'],
+    accessoryPool: ['friendship-bracelet', 'lucky-button', 'ant-antenna'],
     enemies: [
       { name: 'Suspicious Ant', hp: 14, attack: 2, exp: 4, gold: 2, junk: 1 },
       { name: 'Tiny Goblin Accountant', hp: 20, attack: 3, exp: 6, gold: 4, junk: 1 },
-      { name: 'Angry Trash Bag', hp: 28, attack: 4, exp: 9, gold: 6, junk: 2 }
+      { name: 'Angry Trash Bag', hp: 28, attack: 4, exp: 9, gold: 6, junk: 2 },
+      { name: 'Overconfident Mosquito', hp: 18, attack: 4, exp: 7, gold: 4, junk: 1 },
+      { name: 'Garden Gnome Intern', hp: 34, attack: 5, exp: 11, gold: 7, junk: 2 },
+      { name: 'Possum With A Plan', hp: 44, attack: 6, exp: 15, gold: 9, junk: 3 }
     ]
   },
   {
@@ -54,12 +65,16 @@ const ZONES = [
     dropChance: 0.22,
     bossKillsRequired: 14,
     boss: { name: 'Arcade Prize King', hp: 190, attack: 14, exp: 92, gold: 70, junk: 16, artKey: 'enemy-possessed-prize-claw', unlocks: 'Haunted Office Park' },
-    weaponPool: ['plastic-sword', 'bottle-rocket', 'arcade-stool', 'soda-straw', 'laser-pointer'],
-    armorPool: ['varsity-jacket', 'mall-cop-vest', 'soda-tab-mail'],
+    weaponPool: ['plastic-sword', 'bottle-rocket', 'arcade-stool', 'soda-straw', 'laser-pointer', 'ticket-blaster', 'nacho-trident'],
+    armorPool: ['varsity-jacket', 'mall-cop-vest', 'soda-tab-mail', 'prize-counter-cape', 'sticky-sneakers'],
+    accessoryPool: ['token-ring', 'neon-keychain', 'coupon-crown'],
     enemies: [
       { name: 'Coin-Operated Gremlin', hp: 42, attack: 6, exp: 15, gold: 10, junk: 3 },
       { name: 'Possessed Prize Claw', hp: 54, attack: 7, exp: 19, gold: 13, junk: 3 },
-      { name: 'Expired Soda Elemental', hp: 68, attack: 9, exp: 25, gold: 17, junk: 4 }
+      { name: 'Expired Soda Elemental', hp: 68, attack: 9, exp: 25, gold: 17, junk: 4 },
+      { name: 'Carpet Pattern Mimic', hp: 78, attack: 10, exp: 30, gold: 20, junk: 5 },
+      { name: 'Snack Court Revenant', hp: 88, attack: 11, exp: 36, gold: 24, junk: 6 },
+      { name: 'Dance Pad Poltergeist', hp: 102, attack: 13, exp: 44, gold: 29, junk: 7 }
     ]
   },
   {
@@ -71,12 +86,16 @@ const ZONES = [
     dropChance: 0.25,
     bossKillsRequired: 18,
     boss: { name: 'Executive Meeting Ooze', hp: 340, attack: 24, exp: 190, gold: 130, junk: 30, artKey: 'enemy-meeting-ooze', unlocks: 'Dusty Pantry Crypt' },
-    weaponPool: ['stapler', 'keyboard', 'rolling-chair', 'coffee-mug', 'briefcase'],
-    armorPool: ['tie-of-denial', 'printer-toner-plate', 'conference-badge'],
+    weaponPool: ['stapler', 'keyboard', 'rolling-chair', 'coffee-mug', 'briefcase', 'whiteboard-halberd', 'ethernet-lasso'],
+    armorPool: ['tie-of-denial', 'printer-toner-plate', 'conference-badge', 'cubicle-wall', 'ergonomic-kneepads'],
+    accessoryPool: ['sticky-note-charm', 'badge-lanyard', 'coffee-bean-orbit'],
     enemies: [
       { name: 'Passive-Aggressive Printer', hp: 92, attack: 12, exp: 42, gold: 26, junk: 6 },
       { name: 'Spreadsheet Wraith', hp: 112, attack: 14, exp: 54, gold: 31, junk: 7 },
-      { name: 'Meeting Ooze', hp: 138, attack: 16, exp: 68, gold: 38, junk: 8 }
+      { name: 'Meeting Ooze', hp: 138, attack: 16, exp: 68, gold: 38, junk: 8 },
+      { name: 'Calendar Invite Swarm', hp: 154, attack: 18, exp: 82, gold: 45, junk: 9 },
+      { name: 'Breakroom Gargoyle', hp: 172, attack: 20, exp: 98, gold: 54, junk: 11 },
+      { name: 'Synergy Phantom', hp: 196, attack: 22, exp: 118, gold: 64, junk: 13 }
     ]
   },
   {
@@ -88,12 +107,16 @@ const ZONES = [
     dropChance: 0.28,
     bossKillsRequired: 22,
     boss: { name: 'Ancient Condiment Lich', hp: 560, attack: 36, exp: 340, gold: 220, junk: 48, artKey: 'enemy-forklifted-pickle-jar', unlocks: 'Royal Sewer Scriptorium' },
-    weaponPool: ['frying-pan', 'coffee-mug', 'rubber-chicken', 'soda-straw', 'bottle-rocket'],
-    armorPool: ['hoodie', 'soda-tab-mail', 'tie-of-denial'],
+    weaponPool: ['frying-pan', 'coffee-mug', 'rubber-chicken', 'soda-straw', 'bottle-rocket', 'pickle-spear', 'toaster-mace'],
+    armorPool: ['hoodie', 'soda-tab-mail', 'tie-of-denial', 'apron-of-omens', 'tupperware-plate'],
+    accessoryPool: ['crumb-medallion', 'mustard-signet', 'spoon-of-focus'],
     enemies: [
       { name: 'Bread Mold Homunculus', hp: 178, attack: 20, exp: 92, gold: 52, junk: 10 },
       { name: 'Forklifted Pickle Jar', hp: 214, attack: 22, exp: 112, gold: 62, junk: 12 },
-      { name: 'Self-Crumbing Biscuit', hp: 246, attack: 25, exp: 136, gold: 74, junk: 14 }
+      { name: 'Self-Crumbing Biscuit', hp: 246, attack: 25, exp: 136, gold: 74, junk: 14 },
+      { name: 'Condiment Slime Duo', hp: 286, attack: 29, exp: 162, gold: 88, junk: 17 },
+      { name: 'Cereal Box Prophet', hp: 318, attack: 32, exp: 194, gold: 104, junk: 20 },
+      { name: 'Freezer-Burn Knight', hp: 360, attack: 35, exp: 232, gold: 124, junk: 24 }
     ]
   },
   {
@@ -105,12 +128,16 @@ const ZONES = [
     dropChance: 0.31,
     bossKillsRequired: 26,
     boss: { name: 'Royal Rat Chancellor', hp: 820, attack: 50, exp: 560, gold: 360, junk: 76, artKey: 'enemy-crowned-sewer-rat', unlocks: 'bragging rights' },
-    weaponPool: ['briefcase', 'stapler', 'keyboard', 'garden-rake', 'plastic-sword'],
-    armorPool: ['printer-toner-plate', 'conference-badge', 'mall-cop-vest'],
+    weaponPool: ['briefcase', 'stapler', 'keyboard', 'garden-rake', 'plastic-sword', 'quill-rapier', 'plunger-scepter'],
+    armorPool: ['printer-toner-plate', 'conference-badge', 'mall-cop-vest', 'royal-waders', 'decree-mail'],
+    accessoryPool: ['wax-seal-ring', 'rat-crown-pin', 'ledger-orb'],
     enemies: [
       { name: 'Crowned Sewer Rat', hp: 310, attack: 30, exp: 184, gold: 92, junk: 16 },
       { name: 'Royal Flush Wraith', hp: 360, attack: 34, exp: 224, gold: 108, junk: 18 },
-      { name: 'Tax-Collecting Leech', hp: 420, attack: 38, exp: 270, gold: 132, junk: 22 }
+      { name: 'Tax-Collecting Leech', hp: 420, attack: 38, exp: 270, gold: 132, junk: 22 },
+      { name: 'Archivist Sludge', hp: 480, attack: 42, exp: 320, gold: 156, junk: 26 },
+      { name: 'Decree-Writing Ratkin', hp: 540, attack: 47, exp: 380, gold: 184, junk: 30 },
+      { name: 'Royal Drain Hydra', hp: 640, attack: 54, exp: 470, gold: 230, junk: 38 }
     ]
   }
 ];
@@ -130,7 +157,17 @@ const WEAPON_BLUEPRINTS = {
   'keyboard': { name: 'Clicky Keyboard Flail', attack: 14, art: 'keyboard', note: 'Deals bonus noise.' },
   'rolling-chair': { name: 'Rolling Chair Lance', attack: 15, art: 'chair', note: 'A majestic office joust.' },
   'coffee-mug': { name: 'World’s Okayest Mug', attack: 12, art: 'mug', note: 'Warm, bitter, dangerous.' },
-  'briefcase': { name: 'Suspiciously Heavy Briefcase', attack: 16, art: 'case', note: 'Full of quarterly reports.' }
+  'briefcase': { name: 'Suspiciously Heavy Briefcase', attack: 16, art: 'case', note: 'Full of quarterly reports.' },
+  'sprinkler-scepter': { name: 'Sprinkler Scepter', attack: 7, art: 'scepter', note: 'Rotates menacingly.' },
+  'muddy-shovel': { name: 'Muddy Shovel', attack: 7, art: 'shovel', note: 'Digs problems into new places.' },
+  'ticket-blaster': { name: 'Ticket Blaster', attack: 11, art: 'tickets', note: 'Redeemable for panic.' },
+  'nacho-trident': { name: 'Nacho Trident', attack: 12, art: 'trident', note: 'Cheese-based reach weapon.' },
+  'whiteboard-halberd': { name: 'Whiteboard Halberd', attack: 17, art: 'halberd', note: 'Permanent marker, permanent consequences.' },
+  'ethernet-lasso': { name: 'Ethernet Lasso', attack: 18, art: 'cable', note: 'Catches lag and ankles.' },
+  'pickle-spear': { name: 'Pickle Spear', attack: 20, art: 'pickle', note: 'Briny and uncalled for.' },
+  'toaster-mace': { name: 'Toaster Mace', attack: 22, art: 'toaster', note: 'Do not use near royal sewers.' },
+  'quill-rapier': { name: 'Quill Rapier', attack: 26, art: 'quill', note: 'Sharper than policy.' },
+  'plunger-scepter': { name: 'Plunger Scepter', attack: 28, art: 'plunger', note: 'A symbol of questionable rule.' }
 };
 
 const ARMOR_BLUEPRINTS = {
@@ -142,7 +179,36 @@ const ARMOR_BLUEPRINTS = {
   'soda-tab-mail': { name: 'Soda-Tab Chainmail', defense: 5, art: 'mail', note: 'Fizzy protection.' },
   'tie-of-denial': { name: 'Tie of Professional Denial', defense: 7, art: 'tie', note: 'Reduces awkward damage.' },
   'printer-toner-plate': { name: 'Printer Toner Plate', defense: 8, art: 'plate', note: 'Leaves marks on everything.' },
-  'conference-badge': { name: 'Oversized Conference Badge', defense: 9, art: 'badge', note: 'Gets you into rooms and out of danger.' }
+  'conference-badge': { name: 'Oversized Conference Badge', defense: 9, art: 'badge', note: 'Gets you into rooms and out of danger.' },
+  'trash-can-lid': { name: 'Trash Can Lid Buckler', defense: 3, art: 'lid', note: 'Round, loud, heroic.' },
+  'bug-shell-vest': { name: 'Bug Shell Vest', defense: 3, art: 'shell', note: 'Nature made it weird first.' },
+  'prize-counter-cape': { name: 'Prize Counter Cape', defense: 6, art: 'cape', note: 'Costs 900 tickets emotionally.' },
+  'sticky-sneakers': { name: 'Sticky Arcade Sneakers', defense: 6, art: 'shoes', note: 'You are not faster. You are attached.' },
+  'cubicle-wall': { name: 'Cubicle Wall Shield', defense: 10, art: 'wall', note: 'Blocks both arrows and conversation.' },
+  'ergonomic-kneepads': { name: 'Ergonomic Kneepads', defense: 10, art: 'knees', note: 'HR-approved adventuring.' },
+  'apron-of-omens': { name: 'Apron of Omens', defense: 12, art: 'apron', note: 'Stained with prophecy.' },
+  'tupperware-plate': { name: 'Tupperware Plate Armor', defense: 13, art: 'tupperware', note: 'Lid sold separately.' },
+  'royal-waders': { name: 'Royal Sewer Waders', defense: 16, art: 'waders', note: 'Dignity waterproofed.' },
+  'decree-mail': { name: 'Decree-Mail Hauberk', defense: 18, art: 'mail', note: 'Every link is notarized.' }
+};
+
+
+const ACCESSORY_BLUEPRINTS = {
+  'friendship-bracelet': { name: 'Friendship Bracelet of Bonking', crit: 0.02, dodge: 0.01, luck: 1, art: 'bracelet', note: 'Friendship is a stat now.' },
+  'lucky-button': { name: 'Lucky Button', crit: 0.01, dodge: 0.01, luck: 3, art: 'button', note: 'Probably fell off a boss.' },
+  'ant-antenna': { name: 'Ant Antenna Headband', crit: 0.02, dodge: 0.03, luck: 0, art: 'antenna', note: 'Receives picnic violence.' },
+  'token-ring': { name: 'Arcade Token Ring', crit: 0.03, dodge: 0.01, luck: 2, art: 'ring', note: 'No refunds.' },
+  'neon-keychain': { name: 'Neon Keychain', crit: 0.02, dodge: 0.04, luck: 1, art: 'keychain', note: 'Glows in bad decisions.' },
+  'coupon-crown': { name: 'Coupon Crown', crit: 0.01, dodge: 0.02, luck: 5, art: 'crown', note: 'Expires never, somehow.' },
+  'sticky-note-charm': { name: 'Sticky Note Charm', crit: 0.04, dodge: 0.01, luck: 2, art: 'note', note: 'Reminder: win.' },
+  'badge-lanyard': { name: 'Badge Lanyard of Access', crit: 0.02, dodge: 0.03, luck: 3, art: 'lanyard', note: 'Opens doors and loot tables.' },
+  'coffee-bean-orbit': { name: 'Orbiting Coffee Bean', crit: 0.05, dodge: 0.00, luck: 2, art: 'bean', note: 'Hyper-caffeinated satellite.' },
+  'crumb-medallion': { name: 'Sacred Crumb Medallion', crit: 0.03, dodge: 0.03, luck: 4, art: 'crumb', note: 'Tiny but chosen.' },
+  'mustard-signet': { name: 'Mustard Signet', crit: 0.04, dodge: 0.02, luck: 3, art: 'signet', note: 'Leaves authority stains.' },
+  'spoon-of-focus': { name: 'Tiny Spoon of Focus', crit: 0.06, dodge: 0.01, luck: 1, art: 'spoon', note: 'Concentrates soup and intent.' },
+  'wax-seal-ring': { name: 'Wax Seal Ring', crit: 0.05, dodge: 0.02, luck: 4, art: 'seal', note: 'Officially shiny.' },
+  'rat-crown-pin': { name: 'Rat Crown Pin', crit: 0.03, dodge: 0.05, luck: 3, art: 'pin', note: 'Tiny monarchy energy.' },
+  'ledger-orb': { name: 'Ledger Orb', crit: 0.04, dodge: 0.03, luck: 6, art: 'orb', note: 'Balances violence.' }
 };
 
 const STARTER_WEAPONS = [
@@ -154,6 +220,10 @@ const STARTER_WEAPONS = [
 const STARTER_ARMORS = [
   createArmor('hoodie', 'common', 'starter-hoodie'),
   createArmor('cardboard-shield', 'common', 'starter-cardboard-shield')
+];
+
+const STARTER_ACCESSORIES = [
+  createAccessory('friendship-bracelet', 'common', 'starter-friendship-bracelet')
 ];
 
 const state = loadGame();
@@ -191,6 +261,26 @@ function createArmor(blueprintId, tier = 'common', id = uniqueId(blueprintId)) {
   };
 }
 
+
+function createAccessory(blueprintId, tier = 'common', id = uniqueId(blueprintId)) {
+  const blueprint = ACCESSORY_BLUEPRINTS[blueprintId] || ACCESSORY_BLUEPRINTS['friendship-bracelet'];
+  const tierRank = Math.max(0, TIER_ORDER.indexOf(tier));
+  const scalar = 1 + tierRank * 0.45;
+  return {
+    id,
+    blueprintId,
+    type: 'accessory',
+    tier,
+    name: blueprint.name,
+    crit: Math.round((blueprint.crit || 0) * scalar * 1000) / 1000,
+    dodge: Math.round((blueprint.dodge || 0) * scalar * 1000) / 1000,
+    luck: Math.max(0, Math.round((blueprint.luck || 0) * scalar)),
+    level: 1,
+    art: blueprint.art,
+    note: blueprint.note
+  };
+}
+
 function uniqueId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -210,20 +300,24 @@ function freshSave() {
     zoneKills: {},
     defeatedBosses: [],
     dropsFound: 0,
+    accessoriesFound: 0,
     maxWeapons: MAX_WEAPONS,
     maxArmors: MAX_ARMORS,
+    maxAccessories: MAX_ACCESSORIES,
     completedQuests: [],
     claimedQuests: [],
     purchasedShopItems: [],
-    training: { attack: 0, defense: 0 },
+    training: { attack: 0, defense: 0, crit: 0, dodge: 0, luck: 0 },
     battleRunning: false,
     selectedZone: 'backyard',
     currentEnemy: null,
     enemyHp: 0,
     weapons: structuredClone(STARTER_WEAPONS),
     armors: structuredClone(STARTER_ARMORS),
+    accessories: structuredClone(STARTER_ACCESSORIES),
     equippedWeaponId: 'starter-cracked-bat',
     equippedArmorId: 'starter-hoodie',
+    equippedAccessoryId: 'starter-friendship-bracelet',
     autoSalvageBelow: 'none',
     log: ['Welcome to Menu Quest. Pick Battle when you are ready to bonk.'],
     lastSavedAt: Date.now()
@@ -264,6 +358,24 @@ function normalizeArmor(armor, index) {
   };
 }
 
+
+function normalizeAccessory(accessory, index) {
+  const blueprintId = accessory.blueprintId || (ACCESSORY_BLUEPRINTS[accessory.id] ? accessory.id : 'friendship-bracelet');
+  const blueprint = ACCESSORY_BLUEPRINTS[blueprintId] || ACCESSORY_BLUEPRINTS['friendship-bracelet'];
+  const tier = accessory.tier && TIERS[accessory.tier] ? accessory.tier : 'common';
+  const fresh = createAccessory(blueprintId, tier, accessory.id && !ACCESSORY_BLUEPRINTS[accessory.id] ? accessory.id : `${blueprintId}-legacy-${index}`);
+  return {
+    ...fresh,
+    name: accessory.name || blueprint.name,
+    crit: Number.isFinite(accessory.crit) ? accessory.crit : fresh.crit,
+    dodge: Number.isFinite(accessory.dodge) ? accessory.dodge : fresh.dodge,
+    luck: Number.isFinite(accessory.luck) ? accessory.luck : fresh.luck,
+    level: Number.isFinite(accessory.level) ? accessory.level : 1,
+    art: accessory.art || blueprint.art,
+    note: accessory.note || blueprint.note
+  };
+}
+
 function loadGame() {
   const raw = localStorage.getItem(SAVE_KEY);
   if (!raw) return freshSave();
@@ -273,24 +385,31 @@ function loadGame() {
     const merged = { ...freshSave(), ...loaded, version: SAVE_VERSION };
     const loadedMaxWeapons = Number.isFinite(loaded.maxWeapons) ? loaded.maxWeapons : MAX_WEAPONS;
     const loadedMaxArmors = Number.isFinite(loaded.maxArmors) ? loaded.maxArmors : MAX_ARMORS;
+    const loadedMaxAccessories = Number.isFinite(loaded.maxAccessories) ? loaded.maxAccessories : MAX_ACCESSORIES;
     merged.weapons = Array.isArray(loaded.weapons) && loaded.weapons.length
       ? loaded.weapons.map(normalizeWeapon).slice(0, loadedMaxWeapons)
       : structuredClone(STARTER_WEAPONS);
     merged.armors = Array.isArray(loaded.armors) && loaded.armors.length
       ? loaded.armors.map(normalizeArmor).slice(0, loadedMaxArmors)
       : structuredClone(STARTER_ARMORS);
+    merged.accessories = Array.isArray(loaded.accessories) && loaded.accessories.length
+      ? loaded.accessories.map(normalizeAccessory).slice(0, loadedMaxAccessories)
+      : structuredClone(STARTER_ACCESSORIES);
     if (!merged.weapons.some(w => w.id === merged.equippedWeaponId)) merged.equippedWeaponId = merged.weapons[0].id;
     if (!merged.armors.some(a => a.id === merged.equippedArmorId)) merged.equippedArmorId = merged.armors[0].id;
+    if (!merged.accessories.some(a => a.id === merged.equippedAccessoryId)) merged.equippedAccessoryId = merged.accessories[0].id;
     merged.log = Array.isArray(loaded.log) ? loaded.log.slice(0, 12) : [];
     merged.completedQuests = Array.isArray(loaded.completedQuests) ? loaded.completedQuests : [];
     merged.claimedQuests = Array.isArray(loaded.claimedQuests) ? loaded.claimedQuests : [];
     merged.defeatedBosses = Array.isArray(loaded.defeatedBosses) ? loaded.defeatedBosses : [];
     merged.zoneKills = loaded.zoneKills && typeof loaded.zoneKills === 'object' ? loaded.zoneKills : {};
     merged.purchasedShopItems = Array.isArray(loaded.purchasedShopItems) ? loaded.purchasedShopItems : [];
-    merged.training = loaded.training && typeof loaded.training === 'object' ? { attack: loaded.training.attack || 0, defense: loaded.training.defense || 0 } : { attack: 0, defense: 0 };
+    merged.training = loaded.training && typeof loaded.training === 'object' ? { attack: loaded.training.attack || 0, defense: loaded.training.defense || 0, crit: loaded.training.crit || 0, dodge: loaded.training.dodge || 0, luck: loaded.training.luck || 0 } : { attack: 0, defense: 0, crit: 0, dodge: 0, luck: 0 };
     merged.dropsFound = Number.isFinite(loaded.dropsFound) ? loaded.dropsFound : 0;
+    merged.accessoriesFound = Number.isFinite(loaded.accessoriesFound) ? loaded.accessoriesFound : 0;
     merged.maxWeapons = loadedMaxWeapons;
     merged.maxArmors = loadedMaxArmors;
+    merged.maxAccessories = loadedMaxAccessories;
     if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
     if (!canEnterZone(ZONES.find(z => z.id === merged.selectedZone), merged)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
@@ -323,12 +442,37 @@ function equippedArmor() {
   return state.armors.find(a => a.id === state.equippedArmorId) || state.armors[0];
 }
 
+function equippedAccessory() {
+  return state.accessories.find(a => a.id === state.equippedAccessoryId) || state.accessories[0];
+}
+
 function totalAttack() {
   return state.baseAttack + equippedWeapon().attack + (state.training?.attack || 0);
 }
 
 function totalDefense() {
   return state.baseDefense + equippedArmor().defense + (state.training?.defense || 0);
+}
+
+function totalCritChance() {
+  const accessory = equippedAccessory();
+  const shopBoost = state.purchasedShopItems?.includes('training-manual') ? 0.02 : 0;
+  return Math.min(0.45, 0.05 + (accessory?.crit || 0) + (state.training?.crit || 0) * 0.01 + shopBoost);
+}
+
+function totalDodgeChance() {
+  const accessory = equippedAccessory();
+  const shopBoost = state.purchasedShopItems?.includes('training-manual') ? 0.02 : 0;
+  return Math.min(0.35, 0.03 + (accessory?.dodge || 0) + (state.training?.dodge || 0) * 0.01 + shopBoost);
+}
+
+function totalLuck() {
+  const accessory = equippedAccessory();
+  return (accessory?.luck || 0) + (state.training?.luck || 0);
+}
+
+function percent(value) {
+  return `${Math.round(value * 100)}%`;
 }
 
 function currentZone() {
@@ -400,7 +544,7 @@ function pickTier() {
 
 function salvageValue(item) {
   const tier = TIERS[item.tier] || TIERS.common;
-  const power = item.attack || item.defense || 1;
+  const power = item.attack || item.defense || item.luck || 1;
   return {
     junk: tier.salvage + item.level * 2,
     gold: Math.floor((tier.salvage + power) / 2)
@@ -434,16 +578,21 @@ function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
   }
   collection.push(item);
   state.dropsFound += 1;
-  const statText = itemKind === 'weapon' ? `+${item.attack} attack` : `+${item.defense} defense`;
+  const statText = itemKind === 'weapon' ? `+${item.attack} attack` : itemKind === 'armor' ? `+${item.defense} defense` : `+${percent(item.crit)} crit, +${percent(item.dodge)} dodge, +${item.luck} luck`;
   addLog(`Found ${itemKind}: ${tierName} ${item.name} (${statText}).`);
+  if (itemKind === 'accessory') state.accessoriesFound = (state.accessoriesFound || 0) + 1;
 }
 
 function maybeDropEquipment(zone, multiplier = 1) {
   const luckyBoost = state.purchasedShopItems?.includes('lucky-bauble') ? 0.06 : 0;
-  if (Math.random() > (zone.dropChance + luckyBoost) * multiplier) return;
+  const luckBoost = Math.min(0.12, totalLuck() * 0.006);
+  if (Math.random() > (zone.dropChance + luckyBoost + luckBoost) * multiplier) return;
   const tier = pickTier();
-  const dropsArmor = Math.random() < 0.4;
-  if (dropsArmor) {
+  const dropRoll = Math.random();
+  if (dropRoll < 0.18 && zone.accessoryPool?.length) {
+    const blueprintId = zone.accessoryPool[Math.floor(Math.random() * zone.accessoryPool.length)];
+    addEquipmentDrop(createAccessory(blueprintId, tier), state.accessories, state.maxAccessories || MAX_ACCESSORIES, state.equippedAccessoryId, 'accessory');
+  } else if (dropRoll < 0.52) {
     const blueprintId = zone.armorPool[Math.floor(Math.random() * zone.armorPool.length)];
     addEquipmentDrop(createArmor(blueprintId, tier), state.armors, state.maxArmors || MAX_ARMORS, state.equippedArmorId, 'armor');
   } else {
@@ -480,11 +629,15 @@ function checkLevelUps() {
   while (state.exp >= needed) {
     state.exp -= needed;
     state.level += 1;
-    state.maxHp += 8;
+    state.maxHp += state.level % 5 === 0 ? 14 : 8;
     state.baseAttack += 1;
     if (state.level % 2 === 0) state.baseDefense += 1;
+    if (state.level % 4 === 0) state.training.crit = (state.training.crit || 0) + 1;
+    if (state.level % 5 === 0) state.training.dodge = (state.training.dodge || 0) + 1;
+    if (state.level % 3 === 0) state.training.luck = (state.training.luck || 0) + 1;
     state.hp = state.maxHp;
-    addLog(`Level up! You are now level ${state.level}. HP restored.`);
+    const bonusNotes = [state.level % 4 === 0 ? '+1% crit' : '', state.level % 5 === 0 ? '+1% dodge' : '', state.level % 3 === 0 ? '+1 luck' : ''].filter(Boolean);
+    addLog(`Level up! You are now level ${state.level}. HP restored${bonusNotes.length ? `, ${bonusNotes.join(', ')}` : ''}.`);
     needed = expToNext();
   }
   checkQuestCompletion();
@@ -525,7 +678,8 @@ function claimQuest(questId) {
 
 function trainCost(type) {
   const ranks = state.training?.[type] || 0;
-  return { gold: 35 + ranks * 30, junk: 8 + ranks * 7 };
+  const statPremium = ['crit', 'dodge', 'luck'].includes(type) ? 1.6 : 1;
+  return { gold: Math.floor((35 + ranks * 30) * statPremium), junk: Math.floor((8 + ranks * 7) * statPremium) };
 }
 
 function trainStat(type) {
@@ -534,7 +688,8 @@ function trainStat(type) {
   state.gold -= cost.gold;
   state.junk -= cost.junk;
   state.training[type] = (state.training[type] || 0) + 1;
-  addLog(type === 'attack' ? 'Training paid off: permanent +1 attack.' : 'Training paid off: permanent +1 defense.');
+  const labels = { attack: 'permanent +1 attack', defense: 'permanent +1 defense', crit: 'permanent +1% crit', dodge: 'permanent +1% dodge', luck: 'permanent +1 luck' };
+  addLog(`Training paid off: ${labels[type] || type}.`);
 }
 
 function buyShopItem(itemId) {
@@ -548,6 +703,7 @@ function buyShopItem(itemId) {
     state.maxWeapons += 4;
     state.maxArmors += 4;
   }
+  if (item.id === 'trinket-box') state.maxAccessories += 4;
   if (item.id === 'field-snacks') {
     state.maxHp += 12;
     state.hp += 12;
@@ -565,14 +721,16 @@ function battleTick(multiplier = 1) {
   if (!state.currentEnemy) spawnEnemy(state, false);
 
   const enemy = state.currentEnemy;
-  const playerDamage = Math.max(1, totalAttack() + Math.floor(Math.random() * 4));
+  const crit = Math.random() < totalCritChance();
+  const playerDamage = Math.max(1, Math.floor((totalAttack() + Math.floor(Math.random() * 4)) * (crit ? 1.75 : 1)));
   state.enemyHp -= playerDamage;
   if (multiplier === 1 && scene) scene.playAttackAnimation(playerDamage);
   if (state.enemyHp <= 0) {
     gainRewards(enemy, multiplier);
     spawnEnemy();
   } else {
-    const enemyDamage = Math.max(1, enemy.attack - Math.floor(totalDefense() / 2));
+    const dodged = Math.random() < totalDodgeChance();
+    const enemyDamage = dodged ? 0 : Math.max(1, enemy.attack - Math.floor(totalDefense() / 2));
     state.hp = Math.max(0, state.hp - enemyDamage);
     if (multiplier === 1 && scene) scene.playEnemyHit(enemyDamage);
     if (state.hp <= 0) {
@@ -620,7 +778,7 @@ function bossSummary(zone = currentZone()) {
 
 function mainScreenFor(screen) {
   if (screen === 'battle') return 'battle';
-  if (['character', 'weapons', 'armor', 'inventory'].includes(screen)) return 'character';
+  if (['character', 'weapons', 'armor', 'accessories', 'inventory'].includes(screen)) return 'character';
   return 'town';
 }
 
@@ -649,7 +807,7 @@ function tierBadge(item) {
 
 function equipmentCard(item, equipped, type) {
   const salvage = salvageValue(item);
-  const powerText = type === 'weapon' ? `+${item.attack} attack` : `+${item.defense} defense`;
+  const powerText = type === 'weapon' ? `+${item.attack} attack` : type === 'armor' ? `+${item.defense} defense` : `${percent(item.crit)} crit · ${percent(item.dodge)} dodge · +${item.luck} luck`;
   return `
     <div class="equipment-card ${equipped ? 'equipped' : ''}">
       <div>
@@ -712,7 +870,10 @@ function townBadgeText() {
   const canShop = SHOP_ITEMS.some(item => !state.purchasedShopItems.includes(item.id) && state.gold >= item.cost.gold && state.junk >= item.cost.junk);
   const atkCost = trainCost('attack');
   const defCost = trainCost('defense');
-  const canTrain = state.gold >= atkCost.gold && state.junk >= atkCost.junk || state.gold >= defCost.gold && state.junk >= defCost.junk;
+  const critCost = trainCost('crit');
+  const dodgeCost = trainCost('dodge');
+  const luckCost = trainCost('luck');
+  const canTrain = state.gold >= atkCost.gold && state.junk >= atkCost.junk || state.gold >= defCost.gold && state.junk >= defCost.junk || state.gold >= critCost.gold && state.junk >= critCost.junk || state.gold >= dodgeCost.gold && state.junk >= dodgeCost.junk || state.gold >= luckCost.gold && state.junk >= luckCost.junk;
   return { readyQuests, canUpgrade, canShop, canTrain };
 }
 
@@ -737,6 +898,7 @@ function render() {
   const enemy = state.currentEnemy || { name: 'No enemy', hp: 1 };
   const weapon = equippedWeapon();
   const armor = equippedArmor();
+  const accessory = equippedAccessory();
   const zone = currentZone();
   const hpText = `${state.hp}/${state.maxHp}`;
   const enemyText = `${enemy.name} (${Math.max(0, state.enemyHp)}/${enemy.hp} HP)`;
@@ -751,6 +913,8 @@ function render() {
     stat('Enemy', enemyText),
     stat('Attack', totalAttack()),
     stat('Defense', totalDefense()),
+    stat('Crit', percent(totalCritChance())),
+    stat('Dodge', percent(totalDodgeChance())),
     stat('Zone progress', zoneBossDefeated(zone.id) ? 'Boss defeated' : `${Math.min(zoneKills(zone.id), zone.bossKillsRequired)}/${zone.bossKillsRequired} to boss`),
     stat('Zone theme', zone.theme)
   ].join('');
@@ -764,9 +928,13 @@ function render() {
     stat('HP', hpText),
     stat('Base attack', state.baseAttack),
     stat('Base defense', state.baseDefense),
+    stat('Crit chance', percent(totalCritChance())),
+    stat('Dodge chance', percent(totalDodgeChance())),
+    stat('Luck', totalLuck()),
     stat('Kills', state.kills),
     stat('Weapon', `${TIERS[weapon.tier].name} ${weapon.name} +${weapon.attack}`),
-    stat('Armor', `${TIERS[armor.tier].name} ${armor.name} +${armor.defense}`)
+    stat('Armor', `${TIERS[armor.tier].name} ${armor.name} +${armor.defense}`),
+    stat('Accessory', `${TIERS[accessory.tier].name} ${accessory.name} · ${percent(accessory.crit)} crit / ${percent(accessory.dodge)} dodge / ${accessory.luck} luck`)
   ].join('');
 
   document.querySelector('#inventoryStats').innerHTML = [
@@ -774,6 +942,7 @@ function render() {
     stat('Junk', state.junk),
     stat('Weapon space', `${state.weapons.length}/${state.maxWeapons || MAX_WEAPONS}`),
     stat('Armor space', `${state.armors.length}/${state.maxArmors || MAX_ARMORS}`),
+    stat('Accessory space', `${state.accessories.length}/${state.maxAccessories || MAX_ACCESSORIES}`),
     stat('Auto salvage', state.autoSalvageBelow === 'none' ? 'Off' : `Below ${TIERS[state.autoSalvageBelow].name}`),
     stat('Offline cap', '8 hours')
   ].join('');
@@ -783,9 +952,15 @@ function render() {
 
   const atkCost = trainCost('attack');
   const defCost = trainCost('defense');
-  document.querySelector('#trainingHint').textContent = `Attack rank ${state.training.attack}: ${atkCost.gold} gold + ${atkCost.junk} junk. Defense rank ${state.training.defense}: ${defCost.gold} gold + ${defCost.junk} junk.`;
+  const critCost = trainCost('crit');
+  const dodgeCost = trainCost('dodge');
+  const luckCost = trainCost('luck');
+  document.querySelector('#trainingHint').textContent = `Attack rank ${state.training.attack}: ${atkCost.gold}g/${atkCost.junk}j. Defense rank ${state.training.defense}: ${defCost.gold}g/${defCost.junk}j. Crit rank ${state.training.crit}: ${critCost.gold}g/${critCost.junk}j. Dodge rank ${state.training.dodge}: ${dodgeCost.gold}g/${dodgeCost.junk}j. Luck rank ${state.training.luck}: ${luckCost.gold}g/${luckCost.junk}j.`;
   document.querySelector('#trainAttack').disabled = state.gold < atkCost.gold || state.junk < atkCost.junk;
   document.querySelector('#trainDefense').disabled = state.gold < defCost.gold || state.junk < defCost.junk;
+  document.querySelector('#trainCrit').disabled = state.gold < critCost.gold || state.junk < critCost.junk;
+  document.querySelector('#trainDodge').disabled = state.gold < dodgeCost.gold || state.junk < dodgeCost.junk;
+  document.querySelector('#trainLuck').disabled = state.gold < luckCost.gold || state.junk < luckCost.junk;
 
   const badges = townBadgeText();
   document.querySelector('#townBlacksmithBadge').textContent = badges.canUpgrade ? 'Upgrade ready' : '';
@@ -796,12 +971,15 @@ function render() {
 
   document.querySelector('#weaponList').innerHTML = state.weapons.map(w => equipmentCard(w, w.id === state.equippedWeaponId, 'weapon')).join('');
   document.querySelector('#armorList').innerHTML = state.armors.map(a => equipmentCard(a, a.id === state.equippedArmorId, 'armor')).join('');
+  document.querySelector('#accessoryList').innerHTML = state.accessories.map(a => equipmentCard(a, a.id === state.equippedAccessoryId, 'accessory')).join('');
 
   const weaponCost = currentUpgradeCost('weapon');
   const armorCost = currentUpgradeCost('armor');
-  document.querySelector('#craftingHint').textContent = `Weapon: ${weaponCost.gold} gold + ${weaponCost.junk} junk. Armor: ${armorCost.gold} gold + ${armorCost.junk} junk.`;
+  const accessoryCost = currentUpgradeCost('accessory');
+  document.querySelector('#craftingHint').textContent = `Weapon: ${weaponCost.gold} gold + ${weaponCost.junk} junk. Armor: ${armorCost.gold} gold + ${armorCost.junk} junk. Accessory: ${accessoryCost.gold} gold + ${accessoryCost.junk} junk.`;
   document.querySelector('#upgradeWeapon').disabled = state.gold < weaponCost.gold || state.junk < weaponCost.junk;
   document.querySelector('#upgradeArmor').disabled = state.gold < armorCost.gold || state.junk < armorCost.junk;
+  document.querySelector('#upgradeAccessory').disabled = state.gold < accessoryCost.gold || state.junk < accessoryCost.junk;
 
   document.querySelector('#combatLog').innerHTML = state.log.map(item => `<li>${item}</li>`).join('');
   document.querySelector('#miniCombatLog').innerHTML = state.log.slice(0, 3).map(item => `<li>${shortLogLine(item)}</li>`).join('');
@@ -818,7 +996,7 @@ function render() {
 }
 
 function currentUpgradeCost(type) {
-  const item = type === 'armor' ? equippedArmor() : equippedWeapon();
+  const item = type === 'armor' ? equippedArmor() : type === 'accessory' ? equippedAccessory() : equippedWeapon();
   const tier = TIERS[item.tier] || TIERS.common;
   return {
     gold: tier.upgradeGold * item.level,
@@ -827,20 +1005,21 @@ function currentUpgradeCost(type) {
 }
 
 function salvageEquipment(id, type) {
-  const list = type === 'armor' ? state.armors : state.weapons;
-  const equippedId = type === 'armor' ? state.equippedArmorId : state.equippedWeaponId;
+  const list = type === 'armor' ? state.armors : type === 'accessory' ? state.accessories : state.weapons;
+  const equippedId = type === 'armor' ? state.equippedArmorId : type === 'accessory' ? state.equippedAccessoryId : state.equippedWeaponId;
   const item = list.find(i => i.id === id);
   if (!item || item.id === equippedId || list.length <= 1) return;
   const value = salvageValue(item);
   state.gold += value.gold;
   state.junk += value.junk;
   if (type === 'armor') state.armors = state.armors.filter(i => i.id !== id);
+  else if (type === 'accessory') state.accessories = state.accessories.filter(i => i.id !== id);
   else state.weapons = state.weapons.filter(i => i.id !== id);
   addLog(`Salvaged ${TIERS[item.tier].name} ${item.name}: +${value.junk} junk, +${value.gold} gold.`);
 }
 
 function upgradeEquipped(type) {
-  const item = type === 'armor' ? equippedArmor() : equippedWeapon();
+  const item = type === 'armor' ? equippedArmor() : type === 'accessory' ? equippedAccessory() : equippedWeapon();
   const cost = currentUpgradeCost(type);
   if (state.gold < cost.gold || state.junk < cost.junk) return;
   state.gold -= cost.gold;
@@ -848,6 +1027,11 @@ function upgradeEquipped(type) {
   item.level += 1;
   const bump = item.tier === 'epic' ? 4 : item.tier === 'rare' ? 3 : 2;
   if (type === 'armor') item.defense += Math.max(1, bump - 1);
+  else if (type === 'accessory') {
+    item.crit = Math.min(0.18, Math.round((item.crit + 0.005 * bump) * 1000) / 1000);
+    item.dodge = Math.min(0.16, Math.round((item.dodge + 0.004 * bump) * 1000) / 1000);
+    item.luck += Math.max(1, bump - 1);
+  }
   else item.attack += bump;
   addLog(`${TIERS[item.tier].name} ${item.name} upgraded to Lv.${item.level}.`);
 }
@@ -928,6 +1112,19 @@ function bindUi() {
     render();
   });
 
+
+  document.querySelector('#accessoryList').addEventListener('click', event => {
+    const equipId = event.target.dataset.equipAccessory;
+    const salvageId = event.target.dataset.salvageAccessory;
+    if (equipId) {
+      state.equippedAccessoryId = equipId;
+      addLog(`Equipped ${TIERS[equippedAccessory().tier].name} ${equippedAccessory().name}.`);
+    }
+    if (salvageId) salvageEquipment(salvageId, 'accessory');
+    saveGame();
+    render();
+  });
+
   document.querySelector('#upgradeWeapon').addEventListener('click', () => {
     upgradeEquipped('weapon');
     saveGame();
@@ -936,6 +1133,12 @@ function bindUi() {
 
   document.querySelector('#upgradeArmor').addEventListener('click', () => {
     upgradeEquipped('armor');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#upgradeAccessory').addEventListener('click', () => {
+    upgradeEquipped('accessory');
     saveGame();
     render();
   });
@@ -964,6 +1167,24 @@ function bindUi() {
 
   document.querySelector('#trainDefense').addEventListener('click', () => {
     trainStat('defense');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#trainCrit').addEventListener('click', () => {
+    trainStat('crit');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#trainDodge').addEventListener('click', () => {
+    trainStat('dodge');
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#trainLuck').addEventListener('click', () => {
+    trainStat('luck');
     saveGame();
     render();
   });
@@ -1144,7 +1365,7 @@ class BattleScene extends Phaser.Scene {
     this.tierGlow.setAlpha(weapon.tier === 'common' ? 0.42 : weapon.tier === 'unusual' ? 0.58 : weapon.tier === 'rare' ? 0.72 : 0.9);
     this.zoneText.setText(`${zone.name} · ${zone.theme}`);
     this.enemyName.setText(enemy.name);
-    this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}    LV ${gameState.level}    ATK ${attack}    DEF ${defense}    KILLS ${gameState.kills}`);
+    this.statusText.setText(`${gameState.battleRunning ? 'AUTO-BATTLE RUNNING' : 'BATTLE PAUSED'}    LV ${gameState.level}    ATK ${attack}    DEF ${defense}    CRIT ${percent(totalCritChance())}    KILLS ${gameState.kills}`);
     const heroRatio = Phaser.Math.Clamp(gameState.hp / gameState.maxHp, 0, 1);
     const danger = Phaser.Math.Clamp(gameState.enemyHp / enemy.hp, 0, 1);
     this.heroHpFill.width = 170 * heroRatio;
