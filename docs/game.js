@@ -7,16 +7,64 @@ const MAX_ARMORS = 12;
 const MAX_ACCESSORIES = 10;
 const TIER_ORDER = ['common', 'unusual', 'rare', 'epic'];
 
+const QUEST_RANKS = {
+  bronze: { name: 'Bronze', color: '#c58b55' },
+  silver: { name: 'Silver', color: '#b8c7d9' },
+  gold: { name: 'Gold', color: '#ffcf68' },
+  platinum: { name: 'Platinum', color: '#8ee7ff' },
+  epic: { name: 'Epic', color: '#d98bff' },
+  legendary: { name: 'Legendary', color: '#ff8a65' }
+};
+
+const QUEST_CATEGORY_LABELS = {
+  slayer: 'Slayer Board',
+  explorer: 'Explorer Notes',
+  gear: 'Gear Requests',
+  training: 'Training Drills',
+  boss: 'Boss Tales'
+};
+
 const QUESTS = [
-  { id: 'stat-starter', name: 'Find Your Weird Power', description: 'Reach level 3 and unlock your first crit/dodge/luck rhythm.', metric: 'level', target: 3, rewards: { gold: 40, junk: 12, exp: 25 } },
-  { id: 'first-bonks', name: 'First Bonks', description: 'Defeat 5 monsters in any zone.', metric: 'kills', target: 5, rewards: { gold: 18, junk: 6, exp: 12 } },
-  { id: 'backyard-cleanup', name: 'Backyard Cleanup', description: 'Defeat 20 monsters and prove the bugs are mostly unfair.', metric: 'kills', target: 20, rewards: { gold: 55, junk: 18, exp: 35 } },
-  { id: 'gear-check', name: 'Gear Check', description: 'Find 3 gear drops from monsters.', metric: 'dropsFound', target: 3, rewards: { gold: 35, junk: 25, exp: 20 } },
-  { id: 'mall-scout', name: 'Scout the Mall Arcade', description: 'Reach level 4 to unlock the Abandoned Mall Arcade.', metric: 'level', target: 4, rewards: { gold: 80, junk: 20, exp: 45 } },
-  { id: 'steady-hero', name: 'Steady Hero', description: 'Defeat 60 monsters total.', metric: 'kills', target: 60, rewards: { gold: 160, junk: 55, exp: 110 } },
-  { id: 'trinket-test', name: 'Pocket Magic', description: 'Find 2 accessory drops from monsters.', metric: 'accessoriesFound', target: 2, rewards: { gold: 120, junk: 40, exp: 85 } },
-  { id: 'monster-study', name: 'Monster Study Hall', description: 'Defeat 140 monsters total across the expanded zones.', metric: 'kills', target: 140, rewards: { gold: 320, junk: 90, exp: 260 } },
-  { id: 'level-climber', name: 'Level Climber', description: 'Reach level 20 and become worryingly competent.', metric: 'level', target: 20, rewards: { gold: 650, junk: 180, exp: 500 } }
+  { id: 'first-bonks', category: 'slayer', rank: 'bronze', name: 'First Bonks', description: 'Defeat 5 monsters in any zone.', metric: 'kills', target: 5, rewards: { gold: 18, junk: 6, exp: 12 } },
+  { id: 'kill-10', category: 'slayer', rank: 'bronze', name: 'Bug-Sized Warmup', description: 'Defeat 10 enemies total.', metric: 'kills', target: 10, rewards: { gold: 30, junk: 10, exp: 22 } },
+  { id: 'backyard-cleanup', category: 'slayer', rank: 'bronze', name: 'Backyard Cleanup', description: 'Defeat 20 monsters and prove the bugs are mostly unfair.', metric: 'kills', target: 20, rewards: { gold: 55, junk: 18, exp: 35 } },
+  { id: 'kill-50', category: 'slayer', rank: 'silver', name: 'Fifty Bonk Parade', description: 'Defeat 50 enemies total.', metric: 'kills', target: 50, rewards: { gold: 120, junk: 42, exp: 90 } },
+  { id: 'steady-hero', category: 'slayer', rank: 'silver', name: 'Steady Hero', description: 'Defeat 60 monsters total.', metric: 'kills', target: 60, rewards: { gold: 160, junk: 55, exp: 110 } },
+  { id: 'kill-100', category: 'slayer', rank: 'gold', name: 'Century of Bonks', description: 'Defeat 100 enemies total.', metric: 'kills', target: 100, rewards: { gold: 260, junk: 85, exp: 210 } },
+  { id: 'monster-study', category: 'slayer', rank: 'gold', name: 'Monster Study Hall', description: 'Defeat 140 monsters total across the expanded zones.', metric: 'kills', target: 140, rewards: { gold: 320, junk: 90, exp: 260 } },
+  { id: 'kill-250', category: 'slayer', rank: 'platinum', name: 'A Problem For Monsters', description: 'Defeat 250 enemies total.', metric: 'kills', target: 250, rewards: { gold: 700, junk: 210, exp: 620 } },
+  { id: 'kill-500', category: 'slayer', rank: 'epic', name: 'Local Legend', description: 'Defeat 500 enemies total.', metric: 'kills', target: 500, rewards: { gold: 1500, junk: 420, exp: 1350 } },
+  { id: 'kill-1000', category: 'slayer', rank: 'legendary', name: 'The Thousand-Bonk Myth', description: 'Defeat 1000 enemies total.', metric: 'kills', target: 1000, rewards: { gold: 3400, junk: 900, exp: 3200 } },
+
+  { id: 'stat-starter', category: 'explorer', rank: 'bronze', name: 'Find Your Weird Power', description: 'Reach level 3 and unlock your first crit/dodge/luck rhythm.', metric: 'level', target: 3, rewards: { gold: 40, junk: 12, exp: 25 } },
+  { id: 'mall-scout', category: 'explorer', rank: 'silver', name: 'Scout the Mall Arcade', description: 'Reach level 4 to unlock the Abandoned Mall Arcade.', metric: 'level', target: 4, rewards: { gold: 80, junk: 20, exp: 45 } },
+  { id: 'level-5', category: 'explorer', rank: 'silver', name: 'Five-Level Hero Permit', description: 'Reach level 5.', metric: 'level', target: 5, rewards: { gold: 115, junk: 30, exp: 70 } },
+  { id: 'level-10', category: 'explorer', rank: 'gold', name: 'Double-Digit Adventurer', description: 'Reach level 10.', metric: 'level', target: 10, rewards: { gold: 320, junk: 95, exp: 260 } },
+  { id: 'level-15', category: 'explorer', rank: 'platinum', name: 'Town Map Annotator', description: 'Reach level 15.', metric: 'level', target: 15, rewards: { gold: 580, junk: 165, exp: 520 } },
+  { id: 'level-climber', category: 'explorer', rank: 'epic', name: 'Level Climber', description: 'Reach level 20 and become worryingly competent.', metric: 'level', target: 20, rewards: { gold: 650, junk: 180, exp: 500 } },
+  { id: 'level-25', category: 'explorer', rank: 'epic', name: 'Dangerously Well-Rounded', description: 'Reach level 25.', metric: 'level', target: 25, rewards: { gold: 1250, junk: 320, exp: 1250 } },
+  { id: 'level-30', category: 'explorer', rank: 'legendary', name: 'Menu Quest Veteran', description: 'Reach level 30.', metric: 'level', target: 30, rewards: { gold: 2400, junk: 650, exp: 2600 } },
+
+  { id: 'gear-check', category: 'gear', rank: 'bronze', name: 'Gear Check', description: 'Find 3 gear drops from monsters.', metric: 'dropsFound', target: 3, rewards: { gold: 35, junk: 25, exp: 20 } },
+  { id: 'drops-10', category: 'gear', rank: 'silver', name: 'Loot Pockets', description: 'Find 10 gear drops from monsters.', metric: 'dropsFound', target: 10, rewards: { gold: 110, junk: 70, exp: 80 } },
+  { id: 'drops-25', category: 'gear', rank: 'gold', name: 'Closet Full of Bad Ideas', description: 'Find 25 gear drops from monsters.', metric: 'dropsFound', target: 25, rewards: { gold: 360, junk: 180, exp: 260 } },
+  { id: 'drops-50', category: 'gear', rank: 'platinum', name: 'Certified Loot Goblin', description: 'Find 50 gear drops from monsters.', metric: 'dropsFound', target: 50, rewards: { gold: 850, junk: 420, exp: 780 } },
+  { id: 'trinket-first', category: 'gear', rank: 'bronze', name: 'First Pocket Magic', description: 'Find 1 accessory drop from monsters.', metric: 'accessoriesFound', target: 1, rewards: { gold: 55, junk: 20, exp: 35 } },
+  { id: 'trinket-test', category: 'gear', rank: 'silver', name: 'Pocket Magic', description: 'Find 2 accessory drops from monsters.', metric: 'accessoriesFound', target: 2, rewards: { gold: 120, junk: 40, exp: 85 } },
+  { id: 'trinkets-10', category: 'gear', rank: 'gold', name: 'Jingly Inventory', description: 'Find 10 accessory drops from monsters.', metric: 'accessoriesFound', target: 10, rewards: { gold: 440, junk: 160, exp: 360 } },
+  { id: 'trinkets-25', category: 'gear', rank: 'epic', name: 'Tiny Treasure Dragon', description: 'Find 25 accessory drops from monsters.', metric: 'accessoriesFound', target: 25, rewards: { gold: 1400, junk: 460, exp: 1300 } },
+
+  { id: 'train-attack-3', category: 'training', rank: 'bronze', name: 'Arm Day, Probably', description: 'Train attack 3 times.', metric: 'training.attack', target: 3, rewards: { gold: 90, junk: 35, exp: 70 } },
+  { id: 'train-defense-3', category: 'training', rank: 'bronze', name: 'Shield Thoughts', description: 'Train defense 3 times.', metric: 'training.defense', target: 3, rewards: { gold: 90, junk: 35, exp: 70 } },
+  { id: 'train-crits-3', category: 'training', rank: 'silver', name: 'Aim For The Dramatic Bit', description: 'Train crit 3 times.', metric: 'training.crit', target: 3, rewards: { gold: 160, junk: 60, exp: 120 } },
+  { id: 'train-dodge-3', category: 'training', rank: 'silver', name: 'Nope Lessons', description: 'Train dodge 3 times.', metric: 'training.dodge', target: 3, rewards: { gold: 160, junk: 60, exp: 120 } },
+  { id: 'train-luck-5', category: 'training', rank: 'gold', name: 'Definitely Skill, Not Luck', description: 'Train luck 5 times.', metric: 'training.luck', target: 5, rewards: { gold: 320, junk: 120, exp: 260 } },
+  { id: 'train-any-20', category: 'training', rank: 'platinum', name: 'Yard Regular', description: 'Reach 20 total training ranks.', metric: 'trainingTotal', target: 20, rewards: { gold: 900, junk: 260, exp: 820 } },
+
+  { id: 'boss-1', category: 'boss', rank: 'silver', name: 'First Boss Story', description: 'Defeat 1 zone boss.', metric: 'bossesDefeated', target: 1, rewards: { gold: 130, junk: 35, exp: 95 } },
+  { id: 'boss-2', category: 'boss', rank: 'gold', name: 'Bosses Hate This One Trick', description: 'Defeat 2 zone bosses.', metric: 'bossesDefeated', target: 2, rewards: { gold: 360, junk: 100, exp: 290 } },
+  { id: 'boss-3', category: 'boss', rank: 'platinum', name: 'Three Boss Receipts', description: 'Defeat 3 zone bosses.', metric: 'bossesDefeated', target: 3, rewards: { gold: 760, junk: 220, exp: 720 } },
+  { id: 'boss-5', category: 'boss', rank: 'legendary', name: 'World Mostly Saved', description: 'Defeat all 5 current zone bosses.', metric: 'bossesDefeated', target: 5, rewards: { gold: 2600, junk: 700, exp: 2800 } }
 ];
 
 const SHOP_ITEMS = [
@@ -645,6 +693,11 @@ function checkLevelUps() {
 
 function questProgress(quest) {
   if (quest.metric === 'level') return state.level;
+  if (quest.metric === 'bossesDefeated') return state.defeatedBosses?.length || 0;
+  if (quest.metric === 'trainingTotal') return Object.values(state.training || {}).reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+  if (quest.metric?.includes('.')) {
+    return quest.metric.split('.').reduce((value, key) => value?.[key], state) || 0;
+  }
   return state[quest.metric] || 0;
 }
 
@@ -822,20 +875,45 @@ function equipmentCard(item, equipped, type) {
     </div>`;
 }
 
+function questRankBadge(quest) {
+  const rank = QUEST_RANKS[quest.rank] || QUEST_RANKS.bronze;
+  return `<span class="quest-rank" style="--quest-rank:${rank.color}">${rank.name}</span>`;
+}
+
 function questCard(quest) {
   const progress = Math.min(questProgress(quest), quest.target);
   const status = questStatus(quest);
   const rewards = `Reward: ${quest.rewards.gold || 0} gold · ${quest.rewards.junk || 0} junk · ${quest.rewards.exp || 0} EXP`;
   return `
-    <div class="quest-card ${status}">
+    <div class="quest-card ${status} ${quest.rank || 'bronze'}">
       <div>
-        <strong>${quest.name}</strong>
+        <div class="quest-title-row"><strong>${quest.name}</strong>${questRankBadge(quest)}</div>
         <small>${quest.description}</small>
         <div class="progress-track" aria-label="${quest.name} progress"><span style="width:${Math.floor((progress / quest.target) * 100)}%"></span></div>
         <small>${progress}/${quest.target} · ${rewards}</small>
       </div>
       <button data-claim-quest="${quest.id}" ${status !== 'ready' ? 'disabled' : ''}>${status === 'claimed' ? 'Claimed' : status === 'ready' ? 'Claim reward' : 'In progress'}</button>
     </div>`;
+}
+
+function questCategorySection([category, quests]) {
+  const readyCount = quests.filter(q => questStatus(q) === 'ready').length;
+  const activeCount = quests.filter(q => questStatus(q) === 'active').length;
+  return `
+    <section class="quest-category">
+      <h3>${QUEST_CATEGORY_LABELS[category] || category}<span>${readyCount} ready · ${activeCount} active</span></h3>
+      <div class="list">${quests.map(questCard).join('')}</div>
+    </section>`;
+}
+
+function groupedQuestCards() {
+  const groups = Object.entries(QUESTS.reduce((all, quest) => {
+    const key = quest.category || 'slayer';
+    all[key] = all[key] || [];
+    all[key].push(quest);
+    return all;
+  }, {}));
+  return groups.map(questCategorySection).join('');
 }
 
 function shopCard(item) {
@@ -947,7 +1025,7 @@ function render() {
     stat('Offline cap', '8 hours')
   ].join('');
 
-  document.querySelector('#questList').innerHTML = QUESTS.map(questCard).join('');
+  document.querySelector('#questList').innerHTML = groupedQuestCards();
   document.querySelector('#shopList').innerHTML = SHOP_ITEMS.map(shopCard).join('');
 
   const atkCost = trainCost('attack');

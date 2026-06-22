@@ -284,6 +284,12 @@ select { width: 100%; background: #fff2bd; }
 .equipment-card.equipped, .quest-card.ready { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(255,207,104,0.35), 0 0 18px rgba(255,207,104,0.08); }
 .quest-card.claimed, .shop-card.bought { opacity: 0.72; }
 .equipment-card small, .quest-card small, .shop-card small { color: var(--muted); display: block; margin-top: 0.2rem; }
+.quest-category { display: grid; gap: 0.55rem; }
+.quest-category + .quest-category { margin-top: 0.9rem; }
+.quest-category h3 { display: flex; justify-content: space-between; align-items: baseline; gap: 0.7rem; margin: 0.2rem 0 0; color: var(--text); }
+.quest-category h3 span { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+.quest-title-row { display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; }
+.quest-rank { border: 1px solid var(--quest-rank); color: var(--quest-rank); border-radius: 999px; padding: 0.08rem 0.42rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: color-mix(in srgb, var(--quest-rank) 14%, transparent); }
 .equipment-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; justify-content: flex-end; }
 .tier-badge { color: var(--tier); border: 1px solid var(--tier); border-radius: 999px; padding: 0.08rem 0.38rem; margin-right: 0.25rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; box-shadow: 0 0 10px color-mix(in srgb, var(--tier) 35%, transparent); }
 .progress-track { height: 0.62rem; margin: 0.55rem 0 0.25rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; background: rgba(0,0,0,0.22); }
