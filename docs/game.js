@@ -1112,6 +1112,10 @@ function switchScreen(screen) {
   if (screen === 'battle' && scene) scene.syncFromState(state, totalAttack(), totalDefense());
 }
 
+function formatNumber(value) {
+  return Math.floor(value).toLocaleString();
+}
+
 function stat(label, value) {
   return `<div class="stat"><b>${label}</b><span>${value}</span></div>`;
 }
@@ -1283,6 +1287,9 @@ function render() {
   const zone = currentZone();
   const hpText = `${state.hp}/${state.maxHp}`;
   const enemyText = `${enemy.name} (${Math.max(0, state.enemyHp)}/${enemy.hp} HP)`;
+
+  document.querySelector('#goldDisplay').textContent = formatNumber(state.gold);
+  document.querySelector('#junkDisplay').textContent = formatNumber(state.junk);
 
   document.querySelector('#toggleBattle').textContent = state.battleRunning ? 'Pause battle' : 'Start battle';
   const restRemaining = restCooldownRemaining();
