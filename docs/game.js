@@ -1,8 +1,9 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const REST_HEAL_COOLDOWN_MS = 30 * 1000;
+const MINUTE_MS = 60 * 1000;
 const MAX_WEAPONS = 14;
 const MAX_ARMORS = 12;
 const MAX_ACCESSORIES = 10;
@@ -78,6 +79,19 @@ const SHOP_ITEMS = [
   { id: 'lucky-bauble', name: 'Lucky Bauble', description: 'Slightly improves gear drop chance forever.', cost: { gold: 120, junk: 35 } },
   { id: 'trinket-box', name: 'Trinket Box', description: 'Carry +4 accessories.', cost: { gold: 140, junk: 45 } },
   { id: 'training-manual', name: 'Questionable Training Manual', description: 'Permanent +2% crit and +2% dodge.', cost: { gold: 260, junk: 80 } }
+];
+
+
+const DONATION_PROJECTS = [
+  { id: 'tavern', name: 'Tavern Story Fund', description: 'Endless donation. Each rank slightly increases quest reward payouts.', baseCost: { gold: 180, junk: 45 }, effect: 'quest rewards' },
+  { id: 'blacksmith', name: 'Blacksmith Scrap Drive', description: 'Endless donation. Each rank slightly improves salvage payouts.', baseCost: { gold: 140, junk: 80 }, effect: 'salvage value' },
+  { id: 'road', name: 'Road Crew Snack Table', description: 'Endless donation. Each rank slightly improves offline battle rewards.', baseCost: { gold: 220, junk: 60 }, effect: 'offline rewards' }
+];
+
+const CONSUMABLE_BUFFS = [
+  { id: 'battle-snacks', name: 'Battle Snacks', description: '10 minutes of +12% attack and +8% defense.', durationMs: 10 * MINUTE_MS, cost: { gold: 260, junk: 60 } },
+  { id: 'lucky-incense', name: 'Lucky Incense', description: '15 minutes of +10% gear drop chance.', durationMs: 15 * MINUTE_MS, cost: { gold: 320, junk: 110 } },
+  { id: 'junk-magnet', name: 'Junk Magnet', description: '15 minutes of +25% gold and junk from monster rewards.', durationMs: 15 * MINUTE_MS, cost: { gold: 180, junk: 160 } }
 ];
 
 const TIERS = {
@@ -505,6 +519,8 @@ function freshSave() {
     completedQuests: [],
     claimedQuests: [],
     purchasedShopItems: [],
+    donations: {},
+    activeBuffs: {},
     training: { attack: 0, defense: 0, crit: 0, dodge: 0, luck: 0 },
     battleRunning: false,
     selectedZone: 'backyard',
@@ -603,6 +619,8 @@ function loadGame() {
     merged.defeatedBosses = Array.isArray(loaded.defeatedBosses) ? loaded.defeatedBosses : [];
     merged.zoneKills = loaded.zoneKills && typeof loaded.zoneKills === 'object' ? loaded.zoneKills : {};
     merged.purchasedShopItems = Array.isArray(loaded.purchasedShopItems) ? loaded.purchasedShopItems : [];
+    merged.donations = loaded.donations && typeof loaded.donations === 'object' ? loaded.donations : {};
+    merged.activeBuffs = loaded.activeBuffs && typeof loaded.activeBuffs === 'object' ? loaded.activeBuffs : {};
     merged.training = loaded.training && typeof loaded.training === 'object' ? { attack: loaded.training.attack || 0, defense: loaded.training.defense || 0, crit: loaded.training.crit || 0, dodge: loaded.training.dodge || 0, luck: loaded.training.luck || 0 } : { attack: 0, defense: 0, crit: 0, dodge: 0, luck: 0 };
     merged.dropsFound = Number.isFinite(loaded.dropsFound) ? loaded.dropsFound : 0;
     merged.accessoriesFound = Number.isFinite(loaded.accessoriesFound) ? loaded.accessoriesFound : 0;
@@ -646,12 +664,39 @@ function equippedAccessory() {
   return state.accessories.find(a => a.id === state.equippedAccessoryId) || state.accessories[0];
 }
 
+function isBuffActive(buffId, now = Date.now()) {
+  return (state.activeBuffs?.[buffId] || 0) > now;
+}
+
+function buffTimeLeft(buffId, now = Date.now()) {
+  return Math.max(0, (state.activeBuffs?.[buffId] || 0) - now);
+}
+
+function donationLevel(projectId) {
+  return Number.isFinite(state.donations?.[projectId]) ? state.donations[projectId] : 0;
+}
+
+function donationBonus(projectId) {
+  return Math.min(0.75, Math.sqrt(donationLevel(projectId)) * 0.015);
+}
+
+function donationCost(project) {
+  const nextRank = donationLevel(project.id) + 1;
+  const scale = Math.pow(nextRank, 1.62);
+  return {
+    gold: Math.floor(project.baseCost.gold * scale),
+    junk: Math.floor(project.baseCost.junk * scale)
+  };
+}
+
 function totalAttack() {
-  return state.baseAttack + equippedWeapon().attack + (state.training?.attack || 0);
+  const base = state.baseAttack + equippedWeapon().attack + (state.training?.attack || 0);
+  return Math.ceil(base * (isBuffActive('battle-snacks') ? 1.12 : 1));
 }
 
 function totalDefense() {
-  return state.baseDefense + equippedArmor().defense + (state.training?.defense || 0);
+  const base = state.baseDefense + equippedArmor().defense + (state.training?.defense || 0);
+  return Math.ceil(base * (isBuffActive('battle-snacks') ? 1.08 : 1));
 }
 
 function totalCritChance() {
@@ -746,8 +791,8 @@ function salvageValue(item) {
   const tier = TIERS[item.tier] || TIERS.common;
   const power = item.attack || item.defense || item.luck || 1;
   return {
-    junk: tier.salvage + item.level * 2,
-    gold: Math.floor((tier.salvage + power) / 2)
+    junk: Math.floor((tier.salvage + item.level * 2) * (1 + donationBonus('blacksmith'))),
+    gold: Math.floor(((tier.salvage + power) / 2) * (1 + donationBonus('blacksmith')))
   };
 }
 
@@ -786,7 +831,8 @@ function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
 function maybeDropEquipment(zone, multiplier = 1) {
   const luckyBoost = state.purchasedShopItems?.includes('lucky-bauble') ? 0.06 : 0;
   const luckBoost = Math.min(0.12, totalLuck() * 0.006);
-  if (Math.random() > (zone.dropChance + luckyBoost + luckBoost) * multiplier) return;
+  const incenseBoost = isBuffActive('lucky-incense') ? 0.10 : 0;
+  if (Math.random() > (zone.dropChance + luckyBoost + luckBoost + incenseBoost) * multiplier) return;
   const tier = pickTier();
   const dropRoll = Math.random();
   if (dropRoll < 0.18 && zone.accessoryPool?.length) {
@@ -803,9 +849,10 @@ function maybeDropEquipment(zone, multiplier = 1) {
 
 function gainRewards(enemy, multiplier = 1) {
   const zone = currentZone();
+  const rewardMultiplier = multiplier * (isBuffActive('junk-magnet') ? 1.25 : 1);
   const exp = Math.floor(enemy.exp * multiplier);
-  const gold = Math.floor(enemy.gold * multiplier);
-  const junk = Math.max(0, Math.floor(enemy.junk * multiplier));
+  const gold = Math.floor(enemy.gold * rewardMultiplier);
+  const junk = Math.max(0, Math.floor(enemy.junk * rewardMultiplier));
   state.exp += exp;
   state.gold += gold;
   state.junk += junk;
@@ -875,10 +922,14 @@ function claimQuest(questId) {
   if (!quest || questStatus(quest) !== 'ready') return;
   state.completedQuests = state.completedQuests.filter(id => id !== quest.id);
   state.claimedQuests.push(quest.id);
-  state.gold += quest.rewards.gold || 0;
-  state.junk += quest.rewards.junk || 0;
-  state.exp += quest.rewards.exp || 0;
-  addLog(`Quest complete: ${quest.name}! +${quest.rewards.gold || 0} gold, +${quest.rewards.junk || 0} junk, +${quest.rewards.exp || 0} EXP.`);
+  const questBonus = 1 + donationBonus('tavern');
+  const gold = Math.floor((quest.rewards.gold || 0) * questBonus);
+  const junk = Math.floor((quest.rewards.junk || 0) * questBonus);
+  const exp = Math.floor((quest.rewards.exp || 0) * questBonus);
+  state.gold += gold;
+  state.junk += junk;
+  state.exp += exp;
+  addLog(`Quest complete: ${quest.name}! +${gold} gold, +${junk} junk, +${exp} EXP.`);
   checkLevelUps();
 }
 
@@ -918,6 +969,28 @@ function restHeal() {
   state.lastRestedAt = Date.now();
   addLog(wasDead ? 'Emergency rest! HP restored.' : 'Rested up. HP restored.');
   return true;
+}
+
+
+function buyDonation(projectId) {
+  const project = DONATION_PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+  const cost = donationCost(project);
+  if (state.gold < cost.gold || state.junk < cost.junk) return;
+  state.gold -= cost.gold;
+  state.junk -= cost.junk;
+  state.donations[project.id] = donationLevel(project.id) + 1;
+  addLog(`${project.name} reached rank ${donationLevel(project.id)}. ${project.effect} improved.`);
+}
+
+function buyBuff(buffId) {
+  const buff = CONSUMABLE_BUFFS.find(b => b.id === buffId);
+  if (!buff || isBuffActive(buff.id)) return;
+  if (state.gold < buff.cost.gold || state.junk < buff.cost.junk) return;
+  state.gold -= buff.cost.gold;
+  state.junk -= buff.cost.junk;
+  state.activeBuffs[buff.id] = Date.now() + buff.durationMs;
+  addLog(`${buff.name} active for ${Math.round(buff.durationMs / MINUTE_MS)} minutes.`);
 }
 
 function buyShopItem(itemId) {
@@ -978,7 +1051,7 @@ function applyOfflineProgress() {
   const beforeJunk = state.junk;
 
   for (let i = 0; i < ticks; i++) {
-    battleTick(0.85);
+    battleTick(0.85 * (1 + donationBonus('road')));
     if (!state.battleRunning) break;
   }
 
@@ -1105,6 +1178,37 @@ function shopCard(item) {
     </div>`;
 }
 
+
+function donationCard(project) {
+  const level = donationLevel(project.id);
+  const cost = donationCost(project);
+  const affordable = state.gold >= cost.gold && state.junk >= cost.junk;
+  return `
+    <div class="shop-card donation-card">
+      <div>
+        <strong>${project.name} Rank ${level}</strong>
+        <small>${project.description}</small>
+        <small>Current bonus: +${percent(donationBonus(project.id))} ${project.effect}. Next rank: ${cost.gold} gold + ${cost.junk} junk</small>
+      </div>
+      <button data-buy-donation="${project.id}" ${!affordable ? 'disabled' : ''}>Donate</button>
+    </div>`;
+}
+
+function buffCard(buff) {
+  const active = isBuffActive(buff.id);
+  const left = Math.ceil(buffTimeLeft(buff.id) / 1000);
+  const affordable = state.gold >= buff.cost.gold && state.junk >= buff.cost.junk;
+  return `
+    <div class="shop-card buff-card ${active ? 'bought' : ''}">
+      <div>
+        <strong>${buff.name}</strong>
+        <small>${buff.description}</small>
+        <small>${active ? `Active: ${left}s remaining` : `Cost: ${buff.cost.gold} gold + ${buff.cost.junk} junk`}</small>
+      </div>
+      <button data-buy-buff="${buff.id}" ${active || !affordable ? 'disabled' : ''}>${active ? 'Active' : 'Buy'}</button>
+    </div>`;
+}
+
 function shortLogLine(message) {
   return message
     .replace('Auto-salvaged', 'Salvaged')
@@ -1120,7 +1224,9 @@ function townBadgeText() {
   const weaponCost = currentUpgradeCost('weapon');
   const armorCost = currentUpgradeCost('armor');
   const canUpgrade = state.gold >= weaponCost.gold && state.junk >= weaponCost.junk || state.gold >= armorCost.gold && state.junk >= armorCost.junk;
-  const canShop = SHOP_ITEMS.some(item => !state.purchasedShopItems.includes(item.id) && state.gold >= item.cost.gold && state.junk >= item.cost.junk);
+  const canShop = SHOP_ITEMS.some(item => !state.purchasedShopItems.includes(item.id) && state.gold >= item.cost.gold && state.junk >= item.cost.junk)
+    || DONATION_PROJECTS.some(project => { const cost = donationCost(project); return state.gold >= cost.gold && state.junk >= cost.junk; })
+    || CONSUMABLE_BUFFS.some(buff => !isBuffActive(buff.id) && state.gold >= buff.cost.gold && state.junk >= buff.cost.junk);
   const atkCost = trainCost('attack');
   const defCost = trainCost('defense');
   const critCost = trainCost('crit');
@@ -1205,6 +1311,8 @@ function render() {
 
   document.querySelector('#questList').innerHTML = groupedQuestCards();
   document.querySelector('#shopList').innerHTML = SHOP_ITEMS.map(shopCard).join('');
+  document.querySelector('#donationList').innerHTML = DONATION_PROJECTS.map(donationCard).join('');
+  document.querySelector('#buffList').innerHTML = CONSUMABLE_BUFFS.map(buffCard).join('');
 
   const atkCost = trainCost('attack');
   const defCost = trainCost('defense');
@@ -1410,6 +1518,22 @@ function bindUi() {
     const itemId = event.target.dataset.buyShop;
     if (!itemId) return;
     buyShopItem(itemId);
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#donationList').addEventListener('click', event => {
+    const projectId = event.target.dataset.buyDonation;
+    if (!projectId) return;
+    buyDonation(projectId);
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#buffList').addEventListener('click', event => {
+    const buffId = event.target.dataset.buyBuff;
+    if (!buffId) return;
+    buyBuff(buffId);
     saveGame();
     render();
   });
