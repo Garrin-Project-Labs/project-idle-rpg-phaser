@@ -1,5 +1,5 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const REST_HEAL_COOLDOWN_MS = 30 * 1000;
@@ -83,9 +83,9 @@ const SHOP_ITEMS = [
 
 
 const DONATION_PROJECTS = [
-  { id: 'tavern', name: 'Tavern Story Fund', description: 'Endless donation. Each rank slightly increases quest reward payouts.', baseCost: { gold: 180, junk: 45 }, effect: 'quest rewards' },
-  { id: 'blacksmith', name: 'Blacksmith Scrap Drive', description: 'Endless donation. Each rank slightly improves salvage payouts.', baseCost: { gold: 140, junk: 80 }, effect: 'salvage value' },
-  { id: 'road', name: 'Road Crew Snack Table', description: 'Endless donation. Each rank slightly improves offline battle rewards.', baseCost: { gold: 220, junk: 60 }, effect: 'offline rewards' }
+  { id: 'tavern', name: 'Tavern Story Fund', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 180, junk: 45 }, effect: 'quest rewards' },
+  { id: 'blacksmith', name: 'Blacksmith Scrap Drive', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 140, junk: 80 }, effect: 'salvage value' },
+  { id: 'road', name: 'Road Crew Snack Table', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 220, junk: 60 }, effect: 'offline rewards' }
 ];
 
 const CONSUMABLE_BUFFS = [
@@ -672,21 +672,35 @@ function buffTimeLeft(buffId, now = Date.now()) {
   return Math.max(0, (state.activeBuffs?.[buffId] || 0) - now);
 }
 
+function donationRecord(projectId) {
+  const saved = state.donations?.[projectId];
+  if (Number.isFinite(saved)) return { gold: Math.ceil(saved / 2), junk: Math.floor(saved / 2) };
+  if (!saved || typeof saved !== 'object') return { gold: 0, junk: 0 };
+  return {
+    gold: Number.isFinite(saved.gold) ? saved.gold : 0,
+    junk: Number.isFinite(saved.junk) ? saved.junk : 0
+  };
+}
+
 function donationLevel(projectId) {
-  return Number.isFinite(state.donations?.[projectId]) ? state.donations[projectId] : 0;
+  const record = donationRecord(projectId);
+  return record.gold + record.junk;
+}
+
+function donationResourceLevel(projectId, resource) {
+  return donationRecord(projectId)[resource] || 0;
 }
 
 function donationBonus(projectId) {
   return Math.min(0.75, Math.sqrt(donationLevel(projectId)) * 0.015);
 }
 
-function donationCost(project) {
-  const nextRank = donationLevel(project.id) + 1;
-  const scale = Math.pow(nextRank, 1.62);
-  return {
-    gold: Math.floor(project.baseCost.gold * scale),
-    junk: Math.floor(project.baseCost.junk * scale)
-  };
+function donationCost(project, resource) {
+  const nextResourceRank = donationResourceLevel(project.id, resource) + 1;
+  const totalRank = donationLevel(project.id);
+  const resourceScale = Math.pow(nextResourceRank, 1.72);
+  const totalScale = 1 + totalRank * 0.045;
+  return Math.floor(project.baseCost[resource] * resourceScale * totalScale);
 }
 
 function totalAttack() {
@@ -972,15 +986,16 @@ function restHeal() {
 }
 
 
-function buyDonation(projectId) {
+function buyDonation(projectId, resource) {
   const project = DONATION_PROJECTS.find(p => p.id === projectId);
-  if (!project) return;
-  const cost = donationCost(project);
-  if (state.gold < cost.gold || state.junk < cost.junk) return;
-  state.gold -= cost.gold;
-  state.junk -= cost.junk;
-  state.donations[project.id] = donationLevel(project.id) + 1;
-  addLog(`${project.name} reached rank ${donationLevel(project.id)}. ${project.effect} improved.`);
+  if (!project || !['gold', 'junk'].includes(resource)) return;
+  const cost = donationCost(project, resource);
+  if (state[resource] < cost) return;
+  state[resource] -= cost;
+  const record = donationRecord(project.id);
+  record[resource] += 1;
+  state.donations[project.id] = record;
+  addLog(`${project.name} reached rank ${donationLevel(project.id)} with ${cost} ${resource}. ${project.effect} improved.`);
 }
 
 function buyBuff(buffId) {
@@ -1181,16 +1196,23 @@ function shopCard(item) {
 
 function donationCard(project) {
   const level = donationLevel(project.id);
-  const cost = donationCost(project);
-  const affordable = state.gold >= cost.gold && state.junk >= cost.junk;
+  const record = donationRecord(project.id);
+  const goldCost = donationCost(project, 'gold');
+  const junkCost = donationCost(project, 'junk');
+  const canGold = state.gold >= goldCost;
+  const canJunk = state.junk >= junkCost;
   return `
     <div class="shop-card donation-card">
       <div>
         <strong>${project.name} Rank ${level}</strong>
         <small>${project.description}</small>
-        <small>Current bonus: +${percent(donationBonus(project.id))} ${project.effect}. Next rank: ${cost.gold} gold + ${cost.junk} junk</small>
+        <small>Current bonus: +${percent(donationBonus(project.id))} ${project.effect}. Given: ${record.gold} gold ranks · ${record.junk} junk ranks</small>
+        <small>Next gold donation: ${goldCost} gold. Next junk donation: ${junkCost} junk.</small>
       </div>
-      <button data-buy-donation="${project.id}" ${!affordable ? 'disabled' : ''}>Donate</button>
+      <div class="equipment-actions">
+        <button data-buy-donation="${project.id}" data-donation-resource="gold" ${!canGold ? 'disabled' : ''}>Donate gold</button>
+        <button class="secondary" data-buy-donation="${project.id}" data-donation-resource="junk" ${!canJunk ? 'disabled' : ''}>Donate junk</button>
+      </div>
     </div>`;
 }
 
@@ -1225,7 +1247,7 @@ function townBadgeText() {
   const armorCost = currentUpgradeCost('armor');
   const canUpgrade = state.gold >= weaponCost.gold && state.junk >= weaponCost.junk || state.gold >= armorCost.gold && state.junk >= armorCost.junk;
   const canShop = SHOP_ITEMS.some(item => !state.purchasedShopItems.includes(item.id) && state.gold >= item.cost.gold && state.junk >= item.cost.junk)
-    || DONATION_PROJECTS.some(project => { const cost = donationCost(project); return state.gold >= cost.gold && state.junk >= cost.junk; })
+    || DONATION_PROJECTS.some(project => state.gold >= donationCost(project, 'gold') || state.junk >= donationCost(project, 'junk'))
     || CONSUMABLE_BUFFS.some(buff => !isBuffActive(buff.id) && state.gold >= buff.cost.gold && state.junk >= buff.cost.junk);
   const atkCost = trainCost('attack');
   const defCost = trainCost('defense');
@@ -1524,8 +1546,9 @@ function bindUi() {
 
   document.querySelector('#donationList').addEventListener('click', event => {
     const projectId = event.target.dataset.buyDonation;
-    if (!projectId) return;
-    buyDonation(projectId);
+    const resource = event.target.dataset.donationResource;
+    if (!projectId || !resource) return;
+    buyDonation(projectId, resource);
     saveGame();
     render();
   });
