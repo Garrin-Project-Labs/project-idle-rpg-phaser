@@ -1,7 +1,8 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
+const REST_HEAL_COOLDOWN_MS = 30 * 1000;
 const MAX_WEAPONS = 14;
 const MAX_ARMORS = 12;
 const MAX_ACCESSORIES = 10;
@@ -367,6 +368,7 @@ function freshSave() {
     equippedArmorId: 'starter-hoodie',
     equippedAccessoryId: 'starter-friendship-bracelet',
     autoSalvageBelow: 'none',
+    lastRestedAt: 0,
     log: ['Welcome to Menu Quest. Pick Battle when you are ready to bonk.'],
     lastSavedAt: Date.now()
   };
@@ -458,6 +460,7 @@ function loadGame() {
     merged.maxWeapons = loadedMaxWeapons;
     merged.maxArmors = loadedMaxArmors;
     merged.maxAccessories = loadedMaxAccessories;
+    merged.lastRestedAt = Number.isFinite(loaded.lastRestedAt) ? loaded.lastRestedAt : 0;
     if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
     if (!canEnterZone(ZONES.find(z => z.id === merged.selectedZone), merged)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
@@ -745,6 +748,28 @@ function trainStat(type) {
   addLog(`Training paid off: ${labels[type] || type}.`);
 }
 
+function restCooldownRemaining(now = Date.now()) {
+  if (state.hp <= 0) return 0;
+  return Math.max(0, REST_HEAL_COOLDOWN_MS - (now - (state.lastRestedAt || 0)));
+}
+
+function canRestHeal(now = Date.now()) {
+  return state.hp <= 0 || restCooldownRemaining(now) <= 0;
+}
+
+function restHeal() {
+  const wasDead = state.hp <= 0;
+  const remaining = restCooldownRemaining();
+  if (remaining > 0) {
+    addLog(`Rest is cooling down. Try again in ${Math.ceil(remaining / 1000)}s, unless you get flattened first.`);
+    return false;
+  }
+  state.hp = state.maxHp;
+  state.lastRestedAt = Date.now();
+  addLog(wasDead ? 'Emergency rest! HP restored.' : 'Rested up. HP restored.');
+  return true;
+}
+
 function buyShopItem(itemId) {
   const item = SHOP_ITEMS.find(i => i.id === itemId);
   if (!item || state.purchasedShopItems.includes(item.id)) return;
@@ -982,6 +1007,9 @@ function render() {
   const enemyText = `${enemy.name} (${Math.max(0, state.enemyHp)}/${enemy.hp} HP)`;
 
   document.querySelector('#toggleBattle').textContent = state.battleRunning ? 'Pause battle' : 'Start battle';
+  const restRemaining = restCooldownRemaining();
+  document.querySelector('#healButton').textContent = restRemaining > 0 ? `Rest cooldown ${Math.ceil(restRemaining / 1000)}s` : state.hp <= 0 ? 'Emergency rest' : 'Rest + heal';
+  document.querySelector('#healButton').disabled = restRemaining > 0;
   document.querySelector('#battleSummary').textContent = state.battleRunning
     ? `Fighting in ${zone.name}. ${zone.theme}`
     : `Battle is paused. Current zone: ${zone.name} — ${zone.theme}`;
@@ -1139,8 +1167,7 @@ function bindUi() {
   });
 
   document.querySelector('#healButton').addEventListener('click', () => {
-    state.hp = state.maxHp;
-    addLog('Rested up. HP restored.');
+    restHeal();
     saveGame();
     render();
   });
@@ -1464,6 +1491,32 @@ class BattleScene extends Phaser.Scene {
   }
 }
 
+
+function runRestCooldownSelfTest() {
+  const originalHp = state.hp;
+  const originalMaxHp = state.maxHp;
+  const originalLastRestedAt = state.lastRestedAt;
+  const originalLog = [...state.log];
+  state.maxHp = 100;
+  state.hp = 50;
+  state.lastRestedAt = 0;
+  const first = restHeal();
+  const afterFirst = state.hp;
+  state.hp = 40;
+  const second = restHeal();
+  const afterBlocked = state.hp;
+  state.hp = 0;
+  const emergency = restHeal();
+  const afterEmergency = state.hp;
+  state.hp = originalHp;
+  state.maxHp = originalMaxHp;
+  state.lastRestedAt = originalLastRestedAt;
+  state.log = originalLog;
+  if (!first || afterFirst !== 100 || second || afterBlocked !== 40 || !emergency || afterEmergency !== 100) {
+    throw new Error('Rest cooldown self-test failed');
+  }
+}
+
 function startPhaser() {
   new Phaser.Game({
     type: Phaser.AUTO,
@@ -1476,6 +1529,7 @@ function startPhaser() {
   });
 }
 
+runRestCooldownSelfTest();
 spawnEnemy(state, false);
 applyOfflineProgress();
 bindUi();
