@@ -45,6 +45,8 @@ const QUESTS = [
   { id: 'level-climber', category: 'explorer', rank: 'epic', name: 'Level Climber', description: 'Reach level 20 and become worryingly competent.', metric: 'level', target: 20, rewards: { gold: 650, junk: 180, exp: 500 } },
   { id: 'level-25', category: 'explorer', rank: 'epic', name: 'Dangerously Well-Rounded', description: 'Reach level 25.', metric: 'level', target: 25, rewards: { gold: 1250, junk: 320, exp: 1250 } },
   { id: 'level-30', category: 'explorer', rank: 'legendary', name: 'Menu Quest Veteran', description: 'Reach level 30.', metric: 'level', target: 30, rewards: { gold: 2400, junk: 650, exp: 2600 } },
+  { id: 'level-35', category: 'explorer', rank: 'legendary', name: 'Late-Game Map Gremlin', description: 'Reach level 35.', metric: 'level', target: 35, rewards: { gold: 4200, junk: 1100, exp: 4800 } },
+  { id: 'level-40', category: 'explorer', rank: 'legendary', name: 'Ten-Zone Trailblazer', description: 'Reach level 40.', metric: 'level', target: 40, rewards: { gold: 7200, junk: 1800, exp: 8200 } },
 
   { id: 'gear-check', category: 'gear', rank: 'bronze', name: 'Gear Check', description: 'Find 3 gear drops from monsters.', metric: 'dropsFound', target: 3, rewards: { gold: 35, junk: 25, exp: 20 } },
   { id: 'drops-10', category: 'gear', rank: 'silver', name: 'Loot Pockets', description: 'Find 10 gear drops from monsters.', metric: 'dropsFound', target: 10, rewards: { gold: 110, junk: 70, exp: 80 } },
@@ -65,7 +67,9 @@ const QUESTS = [
   { id: 'boss-1', category: 'boss', rank: 'silver', name: 'First Boss Story', description: 'Defeat 1 zone boss.', metric: 'bossesDefeated', target: 1, rewards: { gold: 130, junk: 35, exp: 95 } },
   { id: 'boss-2', category: 'boss', rank: 'gold', name: 'Bosses Hate This One Trick', description: 'Defeat 2 zone bosses.', metric: 'bossesDefeated', target: 2, rewards: { gold: 360, junk: 100, exp: 290 } },
   { id: 'boss-3', category: 'boss', rank: 'platinum', name: 'Three Boss Receipts', description: 'Defeat 3 zone bosses.', metric: 'bossesDefeated', target: 3, rewards: { gold: 760, junk: 220, exp: 720 } },
-  { id: 'boss-5', category: 'boss', rank: 'legendary', name: 'World Mostly Saved', description: 'Defeat all 5 current zone bosses.', metric: 'bossesDefeated', target: 5, rewards: { gold: 2600, junk: 700, exp: 2800 } }
+  { id: 'boss-5', category: 'boss', rank: 'epic', name: 'World Half Saved', description: 'Defeat 5 zone bosses.', metric: 'bossesDefeated', target: 5, rewards: { gold: 2600, junk: 700, exp: 2800 } },
+  { id: 'boss-7', category: 'boss', rank: 'legendary', name: 'Bosses Are A Renewable Resource', description: 'Defeat 7 zone bosses.', metric: 'bossesDefeated', target: 7, rewards: { gold: 5200, junk: 1400, exp: 5800 } },
+  { id: 'boss-10', category: 'boss', rank: 'legendary', name: 'Ten Boss Victory Lap', description: 'Defeat all 10 current zone bosses.', metric: 'bossesDefeated', target: 10, rewards: { gold: 12000, junk: 3000, exp: 14000 } }
 ];
 
 const SHOP_ITEMS = [
@@ -176,7 +180,7 @@ const ZONES = [
     palette: { sky: '#18332f', ground: '#315c52', path: '#223f3d', enemy: '#9fd0a0', accent: '#c6e6d0' },
     dropChance: 0.31,
     bossKillsRequired: 26,
-    boss: { name: 'Royal Rat Chancellor', hp: 820, attack: 50, exp: 560, gold: 360, junk: 76, artKey: 'enemy-crowned-sewer-rat', unlocks: 'bragging rights' },
+    boss: { name: 'Royal Rat Chancellor', hp: 820, attack: 50, exp: 560, gold: 360, junk: 76, artKey: 'enemy-crowned-sewer-rat', unlocks: 'Moonlit Rooftop Bazaar' },
     weaponPool: ['briefcase', 'stapler', 'keyboard', 'garden-rake', 'plastic-sword', 'quill-rapier', 'plunger-scepter'],
     armorPool: ['printer-toner-plate', 'conference-badge', 'mall-cop-vest', 'royal-waders', 'decree-mail'],
     accessoryPool: ['wax-seal-ring', 'rat-crown-pin', 'ledger-orb'],
@@ -187,6 +191,106 @@ const ZONES = [
       { name: 'Archivist Sludge', hp: 480, attack: 42, exp: 320, gold: 156, junk: 26 },
       { name: 'Decree-Writing Ratkin', hp: 540, attack: 47, exp: 380, gold: 184, junk: 30 },
       { name: 'Royal Drain Hydra', hp: 640, attack: 54, exp: 470, gold: 230, junk: 38 }
+    ]
+  },
+  {
+    id: 'rooftops',
+    name: 'Moonlit Rooftop Bazaar',
+    theme: 'Windy awnings, black-market potions, and pigeons with suspicious trade permits.',
+    unlockLevel: 20,
+    palette: { sky: '#18213f', ground: '#4f4668', path: '#2b2948', enemy: '#ffd166', accent: '#8ee7ff' },
+    dropChance: 0.34,
+    bossKillsRequired: 30,
+    boss: { name: 'Chimney Drake Merchant', hp: 1180, attack: 68, exp: 860, gold: 560, junk: 115, artKey: 'enemy-chimney-drake', unlocks: 'Crystal Laundromat' },
+    weaponPool: ['umbrella-lance', 'chimney-broom', 'weather-vane', 'quill-rapier', 'plunger-scepter'],
+    armorPool: ['moon-market-cloak', 'gutter-guard', 'windbreaker-ward', 'royal-waders'],
+    accessoryPool: ['pigeon-contract', 'moon-token', 'chimney-ember'],
+    enemies: [
+      { name: 'Permit Pigeon', hp: 700, attack: 58, exp: 560, gold: 270, junk: 44 },
+      { name: 'Awnings Goblin', hp: 780, attack: 62, exp: 640, gold: 310, junk: 50 },
+      { name: 'Contraband Potion Imp', hp: 880, attack: 67, exp: 740, gold: 360, junk: 58 },
+      { name: 'Rooftop Gargoyle Vendor', hp: 980, attack: 72, exp: 850, gold: 420, junk: 66 },
+      { name: 'Kite String Assassin', hp: 1080, attack: 78, exp: 980, gold: 480, junk: 74 }
+    ]
+  },
+  {
+    id: 'laundromat',
+    name: 'Crystal Laundromat',
+    theme: 'Arcane spin cycles, glitter lint, and dryers that know your secrets.',
+    unlockLevel: 24,
+    palette: { sky: '#16384a', ground: '#2f7f8f', path: '#26576b', enemy: '#a8f0ff', accent: '#f7c8ff' },
+    dropChance: 0.37,
+    bossKillsRequired: 34,
+    boss: { name: 'The Spin Cycle Oracle', hp: 2150, attack: 100, exp: 1450, gold: 900, junk: 180, artKey: 'enemy-spin-cycle-oracle', unlocks: 'Volcano Food Truck Rally' },
+    weaponPool: ['detergent-flail', 'dryer-sheet-katana', 'crystal-hanger', 'umbrella-lance', 'weather-vane'],
+    armorPool: ['lint-mail', 'bubblewrap-tunic', 'static-proof-robe', 'moon-market-cloak'],
+    accessoryPool: ['lost-sock-sigil', 'soap-bubble-orb', 'quarter-of-fate'],
+    enemies: [
+      { name: 'Glitter Lint Elemental', hp: 1160, attack: 82, exp: 1080, gold: 520, junk: 82 },
+      { name: 'Haunted Washing Machine', hp: 1300, attack: 88, exp: 1220, gold: 590, junk: 92 },
+      { name: 'Static Cling Sprite', hp: 1440, attack: 94, exp: 1380, gold: 670, junk: 104 },
+      { name: 'Missing Sock Doppelganger', hp: 1600, attack: 101, exp: 1560, gold: 760, junk: 118 },
+      { name: 'Dryer Door Mimic', hp: 1780, attack: 108, exp: 1780, gold: 860, junk: 134 }
+    ]
+  },
+  {
+    id: 'volcano',
+    name: 'Volcano Food Truck Rally',
+    theme: 'Lava lanes, heroic snacks, and chefs who believe seasoning is combat.',
+    unlockLevel: 28,
+    palette: { sky: '#3d1720', ground: '#8f3b2f', path: '#5c241f', enemy: '#ff8a65', accent: '#ffd166' },
+    dropChance: 0.4,
+    bossKillsRequired: 38,
+    boss: { name: 'Molten Taco Colossus', hp: 3450, attack: 135, exp: 2200, gold: 1350, junk: 265, artKey: 'enemy-molten-taco', unlocks: 'Sky Library of Lost Menus' },
+    weaponPool: ['spatula-greatsword', 'pepper-flamethrower', 'lava-ladle', 'detergent-flail', 'crystal-hanger'],
+    armorPool: ['oven-mitt-gauntlets', 'apron-of-embers', 'food-truck-fender', 'static-proof-robe'],
+    accessoryPool: ['hot-sauce-halo', 'charred-receipt', 'nacho-star'],
+    enemies: [
+      { name: 'Salsa Slime Inferno', hp: 1880, attack: 112, exp: 1700, gold: 920, junk: 145 },
+      { name: 'Food Truck Fire Imp', hp: 2100, attack: 120, exp: 1940, gold: 1040, junk: 164 },
+      { name: 'Charcoal Menu Golem', hp: 2350, attack: 128, exp: 2220, gold: 1180, junk: 186 },
+      { name: 'Nacho Wyvern', hp: 2620, attack: 137, exp: 2540, gold: 1340, junk: 210 },
+      { name: 'Deep-Fried Phoenix Nugget', hp: 2920, attack: 147, exp: 2920, gold: 1520, junk: 238 }
+    ]
+  },
+  {
+    id: 'sky-library',
+    name: 'Sky Library of Lost Menus',
+    theme: 'Floating shelves, strict cloud librarians, and recipes with footnotes.',
+    unlockLevel: 32,
+    palette: { sky: '#203b68', ground: '#6d8fc7', path: '#435f99', enemy: '#f7e8a4', accent: '#c7f0ff' },
+    dropChance: 0.43,
+    bossKillsRequired: 42,
+    boss: { name: 'Cloud Librarian Seraph', hp: 6200, attack: 185, exp: 4200, gold: 2450, junk: 470, artKey: 'enemy-cloud-librarian', unlocks: 'Clockwork Dragon Nursery' },
+    weaponPool: ['bookmark-saber', 'index-card-cannon', 'dictionary-maul', 'spatula-greatsword', 'pepper-flamethrower'],
+    armorPool: ['cloud-cardigan', 'citation-shield', 'quiet-slippers', 'apron-of-embers'],
+    accessoryPool: ['overdue-stamp', 'paperclip-constellation', 'library-card-prism'],
+    enemies: [
+      { name: 'Overdue Book Harpy', hp: 3100, attack: 150, exp: 2780, gold: 1620, junk: 250 },
+      { name: 'Footnote Familiar', hp: 3450, attack: 160, exp: 3180, gold: 1840, junk: 284 },
+      { name: 'Cloud Shelf Golem', hp: 3860, attack: 171, exp: 3640, gold: 2100, junk: 324 },
+      { name: 'Recipe With Teeth', hp: 4320, attack: 183, exp: 4180, gold: 2400, junk: 370 },
+      { name: 'Shushing Thunderhead', hp: 4820, attack: 196, exp: 4800, gold: 2760, junk: 425 }
+    ]
+  },
+  {
+    id: 'dragon-nursery',
+    name: 'Clockwork Dragon Nursery',
+    theme: 'Tiny brass dragons, enormous liability forms, and lullabies with gears.',
+    unlockLevel: 36,
+    palette: { sky: '#2d2538', ground: '#8a6b3f', path: '#4f3f2c', enemy: '#ffcf68', accent: '#9fd0ff' },
+    dropChance: 0.46,
+    bossKillsRequired: 48,
+    boss: { name: 'Nanny Gearwyrm Prime', hp: 10400, attack: 225, exp: 7600, gold: 5200, junk: 960, artKey: 'enemy-gearwyrm-prime', unlocks: 'bragging rights' },
+    weaponPool: ['gear-rattle', 'clock-hand-scythe', 'winding-key-axe', 'bookmark-saber', 'dictionary-maul'],
+    armorPool: ['brass-bib', 'nursery-gate-plate', 'music-box-mail', 'citation-shield'],
+    accessoryPool: ['tiny-dragon-tooth', 'pacifier-gear', 'nap-time-hourglass'],
+    enemies: [
+      { name: 'Brass Hatchling', hp: 5050, attack: 178, exp: 5200, gold: 3100, junk: 480 },
+      { name: 'Wind-Up Wyvern Toddler', hp: 5650, attack: 188, exp: 5980, gold: 3560, junk: 552 },
+      { name: 'Lullaby Automaton', hp: 6320, attack: 198, exp: 6880, gold: 4100, junk: 635 },
+      { name: 'Nursery Gate Mimic', hp: 7080, attack: 210, exp: 7920, gold: 4720, junk: 730 },
+      { name: 'Teething Gear Dragon', hp: 7920, attack: 222, exp: 9120, gold: 5420, junk: 840 }
     ]
   }
 ];
@@ -216,7 +320,22 @@ const WEAPON_BLUEPRINTS = {
   'pickle-spear': { name: 'Pickle Spear', attack: 20, art: 'pickle', note: 'Briny and uncalled for.' },
   'toaster-mace': { name: 'Toaster Mace', attack: 22, art: 'toaster', note: 'Do not use near royal sewers.' },
   'quill-rapier': { name: 'Quill Rapier', attack: 26, art: 'quill', note: 'Sharper than policy.' },
-  'plunger-scepter': { name: 'Plunger Scepter', attack: 28, art: 'plunger', note: 'A symbol of questionable rule.' }
+  'plunger-scepter': { name: 'Plunger Scepter', attack: 28, art: 'plunger', note: 'A symbol of questionable rule.' },
+  'umbrella-lance': { name: 'Umbrella Lance', attack: 32, art: 'umbrella', note: 'Excellent coverage.' },
+  'chimney-broom': { name: 'Chimney Broom Pike', attack: 34, art: 'broom', note: 'Soot-powered reach.' },
+  'weather-vane': { name: 'Weather Vane Spear', attack: 36, art: 'vane', note: 'Always points toward trouble.' },
+  'detergent-flail': { name: 'Detergent Flail', attack: 42, art: 'flail', note: 'Removes stains and enemies.' },
+  'dryer-sheet-katana': { name: 'Dryer Sheet Katana', attack: 44, art: 'katana', note: 'Softens critical hits.' },
+  'crystal-hanger': { name: 'Crystal Hanger Hook', attack: 46, art: 'hanger', note: 'Dry clean only.' },
+  'spatula-greatsword': { name: 'Spatula Greatsword', attack: 54, art: 'spatula', note: 'Flips the whole fight.' },
+  'pepper-flamethrower': { name: 'Pepper Flamethrower', attack: 57, art: 'pepper', note: 'Season to defeat.' },
+  'lava-ladle': { name: 'Lava Ladle', attack: 60, art: 'ladle', note: 'Soup-adjacent catastrophe.' },
+  'bookmark-saber': { name: 'Bookmark Saber', attack: 70, art: 'bookmark', note: 'Saves your place in combat.' },
+  'index-card-cannon': { name: 'Index Card Cannon', attack: 74, art: 'cannon', note: 'Alphabetized artillery.' },
+  'dictionary-maul': { name: 'Dictionary Maul', attack: 78, art: 'book', note: 'Heavy definition of pain.' },
+  'gear-rattle': { name: 'Gear Rattle', attack: 90, art: 'rattle', note: 'Baby toy, boss problem.' },
+  'clock-hand-scythe': { name: 'Clock-Hand Scythe', attack: 95, art: 'scythe', note: 'Time to bonk.' },
+  'winding-key-axe': { name: 'Winding Key Axe', attack: 100, art: 'axe', note: 'Turns the battle around.' }
 };
 
 const ARMOR_BLUEPRINTS = {
@@ -238,7 +357,22 @@ const ARMOR_BLUEPRINTS = {
   'apron-of-omens': { name: 'Apron of Omens', defense: 12, art: 'apron', note: 'Stained with prophecy.' },
   'tupperware-plate': { name: 'Tupperware Plate Armor', defense: 13, art: 'tupperware', note: 'Lid sold separately.' },
   'royal-waders': { name: 'Royal Sewer Waders', defense: 16, art: 'waders', note: 'Dignity waterproofed.' },
-  'decree-mail': { name: 'Decree-Mail Hauberk', defense: 18, art: 'mail', note: 'Every link is notarized.' }
+  'decree-mail': { name: 'Decree-Mail Hauberk', defense: 18, art: 'mail', note: 'Every link is notarized.' },
+  'moon-market-cloak': { name: 'Moon-Market Cloak', defense: 21, art: 'cloak', note: 'Suspiciously discounted.' },
+  'gutter-guard': { name: 'Gutter Guard Pauldrons', defense: 22, art: 'gutter', note: 'Keeps rain and regret off.' },
+  'windbreaker-ward': { name: 'Windbreaker Ward', defense: 24, art: 'jacket', note: 'Magic, but zippered.' },
+  'lint-mail': { name: 'Lint Mail', defense: 28, art: 'lint', note: 'Soft wall technology.' },
+  'bubblewrap-tunic': { name: 'Bubblewrap Tunic', defense: 30, art: 'bubblewrap', note: 'Every hit is satisfying.' },
+  'static-proof-robe': { name: 'Static-Proof Robe', defense: 32, art: 'robe', note: 'Grounded emotionally.' },
+  'oven-mitt-gauntlets': { name: 'Oven Mitt Gauntlets', defense: 38, art: 'mitts', note: 'Handles spicy danger.' },
+  'apron-of-embers': { name: 'Apron of Embers', defense: 40, art: 'apron', note: 'Chef-tier resilience.' },
+  'food-truck-fender': { name: 'Food Truck Fender Plate', defense: 43, art: 'fender', note: 'Street legal armor.' },
+  'cloud-cardigan': { name: 'Cloud Cardigan', defense: 50, art: 'cardigan', note: 'Cozy at altitude.' },
+  'citation-shield': { name: 'Citation Shield', defense: 53, art: 'shield', note: 'Source your blocks.' },
+  'quiet-slippers': { name: 'Quiet Slippers', defense: 56, art: 'slippers', note: 'Sneaky and scholarly.' },
+  'brass-bib': { name: 'Brass Bib', defense: 66, art: 'bib', note: 'Spill-proof against dragons.' },
+  'nursery-gate-plate': { name: 'Nursery Gate Plate', defense: 70, art: 'gate', note: 'Childproof, hero-proof.' },
+  'music-box-mail': { name: 'Music Box Mail', defense: 75, art: 'musicbox', note: 'Tinkles under pressure.' }
 };
 
 
@@ -257,7 +391,22 @@ const ACCESSORY_BLUEPRINTS = {
   'spoon-of-focus': { name: 'Tiny Spoon of Focus', crit: 0.06, dodge: 0.01, luck: 1, art: 'spoon', note: 'Concentrates soup and intent.' },
   'wax-seal-ring': { name: 'Wax Seal Ring', crit: 0.05, dodge: 0.02, luck: 4, art: 'seal', note: 'Officially shiny.' },
   'rat-crown-pin': { name: 'Rat Crown Pin', crit: 0.03, dodge: 0.05, luck: 3, art: 'pin', note: 'Tiny monarchy energy.' },
-  'ledger-orb': { name: 'Ledger Orb', crit: 0.04, dodge: 0.03, luck: 6, art: 'orb', note: 'Balances violence.' }
+  'ledger-orb': { name: 'Ledger Orb', crit: 0.04, dodge: 0.03, luck: 6, art: 'orb', note: 'Balances violence.' },
+  'pigeon-contract': { name: 'Pigeon Contract', crit: 0.05, dodge: 0.04, luck: 7, art: 'contract', note: 'Legally cooing.' },
+  'moon-token': { name: 'Moon Token', crit: 0.04, dodge: 0.05, luck: 8, art: 'token', note: 'Spend only at midnight.' },
+  'chimney-ember': { name: 'Chimney Ember', crit: 0.06, dodge: 0.03, luck: 7, art: 'ember', note: 'Warm pocket danger.' },
+  'lost-sock-sigil': { name: 'Lost Sock Sigil', crit: 0.05, dodge: 0.06, luck: 9, art: 'sock', note: 'Pairs with destiny.' },
+  'soap-bubble-orb': { name: 'Soap Bubble Orb', crit: 0.04, dodge: 0.08, luck: 8, art: 'bubble', note: 'Fragile-looking confidence.' },
+  'quarter-of-fate': { name: 'Quarter of Fate', crit: 0.07, dodge: 0.04, luck: 10, art: 'quarter', note: 'Heads, you win.' },
+  'hot-sauce-halo': { name: 'Hot Sauce Halo', crit: 0.08, dodge: 0.03, luck: 10, art: 'halo', note: 'Spicy aura unlocked.' },
+  'charred-receipt': { name: 'Charred Receipt', crit: 0.06, dodge: 0.06, luck: 11, art: 'receipt', note: 'Proof of purchase and pain.' },
+  'nacho-star': { name: 'Nacho Star', crit: 0.07, dodge: 0.05, luck: 12, art: 'star', note: 'Five points of cheese.' },
+  'overdue-stamp': { name: 'Overdue Stamp', crit: 0.08, dodge: 0.06, luck: 12, art: 'stamp', note: 'Late fees hit hard.' },
+  'paperclip-constellation': { name: 'Paperclip Constellation', crit: 0.06, dodge: 0.08, luck: 13, art: 'clips', note: 'Office supplies in orbit.' },
+  'library-card-prism': { name: 'Library Card Prism', crit: 0.09, dodge: 0.05, luck: 14, art: 'prism', note: 'Checks out victory.' },
+  'tiny-dragon-tooth': { name: 'Tiny Dragon Tooth', crit: 0.10, dodge: 0.06, luck: 15, art: 'tooth', note: 'Small bite, big stats.' },
+  'pacifier-gear': { name: 'Pacifier Gear', crit: 0.08, dodge: 0.09, luck: 16, art: 'gear', note: 'Soothes the loot table.' },
+  'nap-time-hourglass': { name: 'Nap-Time Hourglass', crit: 0.09, dodge: 0.08, luck: 18, art: 'hourglass', note: 'Counts down to boss bedtime.' }
 };
 
 const STARTER_WEAPONS = [
@@ -680,9 +829,10 @@ function checkLevelUps() {
   while (state.exp >= needed) {
     state.exp -= needed;
     state.level += 1;
-    state.maxHp += state.level % 5 === 0 ? 14 : 8;
-    state.baseAttack += 1;
-    if (state.level % 2 === 0) state.baseDefense += 1;
+    state.maxHp += 10 + Math.floor(state.level / 4) * 2 + (state.level % 5 === 0 ? 8 : 0);
+    state.baseAttack += 1 + (state.level % 6 === 0 ? 1 : 0);
+    state.baseDefense += state.level % 2 === 0 ? 1 : 0;
+    if (state.level >= 18 && state.level % 3 === 0) state.baseDefense += 1;
     if (state.level % 4 === 0) state.training.crit = (state.training.crit || 0) + 1;
     if (state.level % 5 === 0) state.training.dodge = (state.training.dodge || 0) + 1;
     if (state.level % 3 === 0) state.training.luck = (state.training.luck || 0) + 1;
