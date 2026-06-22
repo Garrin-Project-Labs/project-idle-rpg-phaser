@@ -1522,6 +1522,7 @@ class BattleScene extends Phaser.Scene {
     }
     for (const zone of ZONES) {
       for (const enemy of zone.enemies) this.load.image(enemyAssetKey(enemy), `${base}${enemyAssetKey(enemy)}.png`);
+      this.load.image(enemyAssetKey(zone.boss), `${base}${enemyAssetKey(zone.boss)}.png`);
     }
   }
 
