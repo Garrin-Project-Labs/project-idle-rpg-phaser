@@ -1,5 +1,5 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 const TICK_MS = 1000;
 const REST_HEAL_COOLDOWN_MS = 30 * 1000;
@@ -86,6 +86,12 @@ const DONATION_PROJECTS = [
   { id: 'tavern', name: 'Tavern Story Fund', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 180, junk: 45 }, effect: 'quest rewards' },
   { id: 'blacksmith', name: 'Blacksmith Scrap Drive', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 140, junk: 80 }, effect: 'salvage value' },
   { id: 'road', name: 'Road Crew Snack Table', description: 'Endless donation. Spend either gold or junk; repeated use of one resource makes that resource cost more.', baseCost: { gold: 220, junk: 60 }, effect: 'offline rewards' }
+];
+
+const MASTERY_TIERS = [
+  { kills: 25, label: 'Scout', rewards: { gold: 75, junk: 20, exp: 45 } },
+  { kills: 100, label: 'Regular', rewards: { gold: 260, junk: 75, exp: 180 } },
+  { kills: 250, label: 'Master', rewards: { gold: 850, junk: 220, exp: 700 } }
 ];
 
 const CONSUMABLE_BUFFS = [
@@ -510,6 +516,7 @@ function freshSave() {
     junk: 0,
     kills: 0,
     zoneKills: {},
+    claimedMasteries: [],
     defeatedBosses: [],
     dropsFound: 0,
     accessoriesFound: 0,
@@ -534,6 +541,7 @@ function freshSave() {
     equippedAccessoryId: 'starter-friendship-bracelet',
     autoSalvageBelow: 'none',
     lastRestedAt: 0,
+    lastOfflineReport: null,
     log: ['Welcome to Menu Quest. Pick Battle when you are ready to bonk.'],
     lastSavedAt: Date.now()
   };
@@ -617,6 +625,7 @@ function loadGame() {
     merged.completedQuests = Array.isArray(loaded.completedQuests) ? loaded.completedQuests : [];
     merged.claimedQuests = Array.isArray(loaded.claimedQuests) ? loaded.claimedQuests : [];
     merged.defeatedBosses = Array.isArray(loaded.defeatedBosses) ? loaded.defeatedBosses : [];
+    merged.claimedMasteries = Array.isArray(loaded.claimedMasteries) ? loaded.claimedMasteries : [];
     merged.zoneKills = loaded.zoneKills && typeof loaded.zoneKills === 'object' ? loaded.zoneKills : {};
     merged.purchasedShopItems = Array.isArray(loaded.purchasedShopItems) ? loaded.purchasedShopItems : [];
     merged.donations = loaded.donations && typeof loaded.donations === 'object' ? loaded.donations : {};
@@ -628,6 +637,7 @@ function loadGame() {
     merged.maxArmors = loadedMaxArmors;
     merged.maxAccessories = loadedMaxAccessories;
     merged.lastRestedAt = Number.isFinite(loaded.lastRestedAt) ? loaded.lastRestedAt : 0;
+    merged.lastOfflineReport = loaded.lastOfflineReport && typeof loaded.lastOfflineReport === 'object' ? loaded.lastOfflineReport : null;
     if (!ZONES.some(z => z.id === merged.selectedZone)) merged.selectedZone = 'backyard';
     if (!canEnterZone(ZONES.find(z => z.id === merged.selectedZone), merged)) merged.selectedZone = 'backyard';
     if (!merged.currentEnemy) spawnEnemy(merged, false);
@@ -801,6 +811,50 @@ function pickTier() {
   return 'common';
 }
 
+
+function baseItemSnapshot(item, type = item?.type) {
+  if (!item) return null;
+  if (type === 'weapon') {
+    const blueprint = WEAPON_BLUEPRINTS[item.blueprintId] || WEAPON_BLUEPRINTS['cracked-bat'];
+    const tier = TIERS[item.tier] || TIERS.common;
+    return { type, name: item.name || blueprint.name, tier: item.tier || 'common', score: blueprint.attack + tier.attackBonus, text: `base +${blueprint.attack + tier.attackBonus} attack` };
+  }
+  if (type === 'armor') {
+    const blueprint = ARMOR_BLUEPRINTS[item.blueprintId] || ARMOR_BLUEPRINTS.hoodie;
+    const tier = TIERS[item.tier] || TIERS.common;
+    return { type, name: item.name || blueprint.name, tier: item.tier || 'common', score: blueprint.defense + tier.defenseBonus, text: `base +${blueprint.defense + tier.defenseBonus} defense` };
+  }
+  const blueprint = ACCESSORY_BLUEPRINTS[item.blueprintId] || ACCESSORY_BLUEPRINTS['friendship-bracelet'];
+  const tier = item.tier || 'common';
+  const fresh = createAccessory(item.blueprintId || 'friendship-bracelet', tier, 'compare');
+  const score = Math.round(((fresh.crit || 0) * 120 + (fresh.dodge || 0) * 100 + (fresh.luck || 0)) * 10) / 10;
+  return { type: 'accessory', name: item.name || blueprint.name, tier, score, text: `base ${percent(fresh.crit)} crit · ${percent(fresh.dodge)} dodge · +${fresh.luck} luck` };
+}
+
+function betterBaseItem(candidate, current, type = candidate?.type) {
+  if (!candidate) return current;
+  if (!current) return { ...baseItemSnapshot(candidate, type), itemName: candidate.name };
+  const candidateBase = baseItemSnapshot(candidate, type);
+  if (!candidateBase) return current;
+  return candidateBase.score > (current.score || 0) ? { ...candidateBase, itemName: candidate.name } : current;
+}
+
+function equippedForType(type) {
+  if (type === 'armor') return equippedArmor();
+  if (type === 'accessory') return equippedAccessory();
+  return equippedWeapon();
+}
+
+function gearComparisonText(item, type) {
+  if (equippedForType(type)?.id === item.id) return 'Equipped item — comparing future drops against this base.';
+  const itemBase = baseItemSnapshot(item, type);
+  const equippedBase = baseItemSnapshot(equippedForType(type), type);
+  if (!itemBase || !equippedBase) return '';
+  const diff = Math.round((itemBase.score - equippedBase.score) * 10) / 10;
+  if (diff === 0) return `Base comparison: tied with equipped (${itemBase.text}).`;
+  return `Base comparison: ${diff > 0 ? '+' : ''}${diff} vs equipped base (${itemBase.text}).`;
+}
+
 function salvageValue(item) {
   const tier = TIERS[item.tier] || TIERS.common;
   const power = item.attack || item.defense || item.luck || 1;
@@ -819,7 +873,7 @@ function shouldAutoSalvageDrop(item) {
   return tierRank(item.tier) >= 0 && tierRank(item.tier) < tierRank(state.autoSalvageBelow);
 }
 
-function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
+function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind, tracker = null) {
   const tierName = TIERS[item.tier].name;
   if (shouldAutoSalvageDrop(item)) {
     const salvage = salvageValue(item);
@@ -837,12 +891,16 @@ function addEquipmentDrop(item, collection, maxItems, equippedId, itemKind) {
   }
   collection.push(item);
   state.dropsFound += 1;
+  if (tracker) {
+    tracker.drops = (tracker.drops || 0) + 1;
+    tracker.bestDrop = betterBaseItem(item, tracker.bestDrop || null, itemKind);
+  }
   const statText = itemKind === 'weapon' ? `+${item.attack} attack` : itemKind === 'armor' ? `+${item.defense} defense` : `+${percent(item.crit)} crit, +${percent(item.dodge)} dodge, +${item.luck} luck`;
   addLog(`Found ${itemKind}: ${tierName} ${item.name} (${statText}).`);
   if (itemKind === 'accessory') state.accessoriesFound = (state.accessoriesFound || 0) + 1;
 }
 
-function maybeDropEquipment(zone, multiplier = 1) {
+function maybeDropEquipment(zone, multiplier = 1, tracker = null) {
   const luckyBoost = state.purchasedShopItems?.includes('lucky-bauble') ? 0.06 : 0;
   const luckBoost = Math.min(0.12, totalLuck() * 0.006);
   const incenseBoost = isBuffActive('lucky-incense') ? 0.10 : 0;
@@ -851,17 +909,17 @@ function maybeDropEquipment(zone, multiplier = 1) {
   const dropRoll = Math.random();
   if (dropRoll < 0.18 && zone.accessoryPool?.length) {
     const blueprintId = zone.accessoryPool[Math.floor(Math.random() * zone.accessoryPool.length)];
-    addEquipmentDrop(createAccessory(blueprintId, tier), state.accessories, state.maxAccessories || MAX_ACCESSORIES, state.equippedAccessoryId, 'accessory');
+    addEquipmentDrop(createAccessory(blueprintId, tier), state.accessories, state.maxAccessories || MAX_ACCESSORIES, state.equippedAccessoryId, 'accessory', tracker);
   } else if (dropRoll < 0.52) {
     const blueprintId = zone.armorPool[Math.floor(Math.random() * zone.armorPool.length)];
-    addEquipmentDrop(createArmor(blueprintId, tier), state.armors, state.maxArmors || MAX_ARMORS, state.equippedArmorId, 'armor');
+    addEquipmentDrop(createArmor(blueprintId, tier), state.armors, state.maxArmors || MAX_ARMORS, state.equippedArmorId, 'armor', tracker);
   } else {
     const blueprintId = zone.weaponPool[Math.floor(Math.random() * zone.weaponPool.length)];
-    addEquipmentDrop(createWeapon(blueprintId, tier), state.weapons, state.maxWeapons || MAX_WEAPONS, state.equippedWeaponId, 'weapon');
+    addEquipmentDrop(createWeapon(blueprintId, tier), state.weapons, state.maxWeapons || MAX_WEAPONS, state.equippedWeaponId, 'weapon', tracker);
   }
 }
 
-function gainRewards(enemy, multiplier = 1) {
+function gainRewards(enemy, multiplier = 1, tracker = null) {
   const zone = currentZone();
   const rewardMultiplier = multiplier * (isBuffActive('junk-magnet') ? 1.25 : 1);
   const exp = Math.floor(enemy.exp * multiplier);
@@ -871,6 +929,12 @@ function gainRewards(enemy, multiplier = 1) {
   state.gold += gold;
   state.junk += junk;
   state.kills += 1;
+  if (tracker) {
+    tracker.kills = (tracker.kills || 0) + 1;
+    tracker.exp = (tracker.exp || 0) + exp;
+    tracker.gold = (tracker.gold || 0) + gold;
+    tracker.junk = (tracker.junk || 0) + junk;
+  }
   if (enemy.isBoss) {
     if (!state.defeatedBosses.includes(zone.id)) state.defeatedBosses.push(zone.id);
     addLog(`Boss defeated: ${enemy.name}! ${enemy.unlocks} unlocked. +${exp} EXP, +${gold} gold, +${junk} junk.`);
@@ -878,7 +942,7 @@ function gainRewards(enemy, multiplier = 1) {
   } else {
     state.zoneKills[zone.id] = zoneKills(zone.id) + 1;
     addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
-    maybeDropEquipment(zone, multiplier);
+    maybeDropEquipment(zone, multiplier, tracker);
     if (state.zoneKills[zone.id] === zone.bossKillsRequired) addLog(`Boss ready in ${zone.name}: ${zone.boss.name}.`);
   }
   checkLevelUps();
@@ -903,6 +967,38 @@ function checkLevelUps() {
     needed = expToNext();
   }
   checkQuestCompletion();
+}
+
+
+function masteryId(zoneId, tierIndex) {
+  return `${zoneId}:${tierIndex}`;
+}
+
+function scaledMasteryRewards(zone, tier) {
+  const scale = 1 + Math.max(0, zoneIndex(zone.id)) * 0.42;
+  return {
+    gold: Math.floor(tier.rewards.gold * scale),
+    junk: Math.floor(tier.rewards.junk * scale),
+    exp: Math.floor(tier.rewards.exp * scale)
+  };
+}
+
+function masteryStatus(zone, tier, tierIndex) {
+  if (state.claimedMasteries.includes(masteryId(zone.id, tierIndex))) return 'claimed';
+  return zoneKills(zone.id) >= tier.kills ? 'ready' : 'active';
+}
+
+function claimMastery(zoneId, tierIndex) {
+  const zone = ZONES.find(z => z.id === zoneId);
+  const tier = MASTERY_TIERS[tierIndex];
+  if (!zone || !tier || masteryStatus(zone, tier, tierIndex) !== 'ready') return;
+  state.claimedMasteries.push(masteryId(zone.id, tierIndex));
+  const rewards = scaledMasteryRewards(zone, tier);
+  state.gold += rewards.gold;
+  state.junk += rewards.junk;
+  state.exp += rewards.exp;
+  addLog(`${zone.name} mastery claimed: ${tier.label}. +${rewards.gold} gold, +${rewards.junk} junk, +${rewards.exp} EXP.`);
+  checkLevelUps();
 }
 
 function questProgress(quest) {
@@ -1027,7 +1123,7 @@ function buyShopItem(itemId) {
   addLog(`Bought ${item.name}.`);
 }
 
-function battleTick(multiplier = 1) {
+function battleTick(multiplier = 1, tracker = null) {
   if (!state.battleRunning) return;
   if (state.hp <= 0) {
     state.battleRunning = false;
@@ -1042,7 +1138,7 @@ function battleTick(multiplier = 1) {
   state.enemyHp -= playerDamage;
   if (multiplier === 1 && scene) scene.playAttackAnimation(playerDamage);
   if (state.enemyHp <= 0) {
-    gainRewards(enemy, multiplier);
+    gainRewards(enemy, multiplier, tracker);
     spawnEnemy();
   } else {
     const dodged = Math.random() < totalDodgeChance();
@@ -1060,22 +1156,16 @@ function applyOfflineProgress() {
   const elapsed = Math.min(Date.now() - (state.lastSavedAt || Date.now()), OFFLINE_CAP_MS);
   if (!state.battleRunning || elapsed < 5000) return;
   const ticks = Math.floor(elapsed / TICK_MS);
-  const beforeKills = state.kills;
-  const beforeExp = state.exp;
-  const beforeGold = state.gold;
-  const beforeJunk = state.junk;
+  const report = { minutes: Math.max(1, Math.floor(elapsed / 60000)), kills: 0, gold: 0, junk: 0, exp: 0, drops: 0, bestDrop: null };
 
   for (let i = 0; i < ticks; i++) {
-    battleTick(0.85 * (1 + donationBonus('road')));
+    battleTick(0.85 * (1 + donationBonus('road')), report);
     if (!state.battleRunning) break;
   }
 
-  const minutes = Math.max(1, Math.floor(elapsed / 60000));
-  const kills = state.kills - beforeKills;
-  if (kills > 0) {
-    addLog(`While you were away ${minutes}m, battle kept running: ${kills} kills, +${state.gold - beforeGold} gold, +${state.junk - beforeJunk} junk.`);
-  } else if (state.exp !== beforeExp) {
-    addLog(`While you were away ${minutes}m, your hero made a little progress.`);
+  if (report.kills > 0 || report.exp > 0 || report.drops > 0) {
+    state.lastOfflineReport = report;
+    addLog(`While you were away ${report.minutes}m, battle kept running: ${report.kills} kills, +${report.gold} gold, +${report.junk} junk.`);
   }
 }
 
@@ -1133,6 +1223,7 @@ function equipmentCard(item, equipped, type) {
       <div>
         <strong>${tierBadge(item)} ${item.name} Lv.${item.level}</strong>
         <small>${powerText} · ${item.note}${equipped ? ' · equipped' : ''}</small>
+        <small>${gearComparisonText(item, type)}</small>
         <small>Salvage value: ${salvage.junk} junk + ${salvage.gold} gold</small>
       </div>
       <div class="equipment-actions">
@@ -1181,6 +1272,33 @@ function groupedQuestCards() {
     return all;
   }, {}));
   return groups.map(questCategorySection).join('');
+}
+
+
+function masteryCard(zone, tier, tierIndex) {
+  const progress = Math.min(zoneKills(zone.id), tier.kills);
+  const status = masteryStatus(zone, tier, tierIndex);
+  const rewards = scaledMasteryRewards(zone, tier);
+  return `
+    <div class="quest-card ${status}">
+      <div>
+        <strong>${tier.label} · ${tier.kills} ${zone.name} kills</strong>
+        <div class="progress-track" aria-label="${tier.label} mastery progress"><span style="width:${Math.floor((progress / tier.kills) * 100)}%"></span></div>
+        <small>${progress}/${tier.kills} · Reward: ${rewards.gold} gold · ${rewards.junk} junk · ${rewards.exp} EXP</small>
+      </div>
+      <button data-claim-mastery="${zone.id}" data-mastery-tier="${tierIndex}" ${status !== 'ready' ? 'disabled' : ''}>${status === 'claimed' ? 'Claimed' : status === 'ready' ? 'Claim' : 'In progress'}</button>
+    </div>`;
+}
+
+function offlineReportCard(report) {
+  if (!report) return '';
+  const best = report.bestDrop ? `<small>Best drop: ${TIERS[report.bestDrop.tier]?.name || ''} ${report.bestDrop.itemName || report.bestDrop.name} (${report.bestDrop.text})</small>` : '<small>No gear drops this time.</small>';
+  return `
+    <div>
+      <div class="quest-title-row"><strong>Welcome back report</strong><button class="secondary mini-button" id="dismissOfflineReport">Dismiss</button></div>
+      <small>${report.minutes}m away · ${report.kills || 0} kills · +${report.gold || 0} gold · +${report.junk || 0} junk · +${report.exp || 0} EXP · ${report.drops || 0} drops</small>
+      ${best}
+    </div>`;
 }
 
 function shopCard(item) {
@@ -1299,6 +1417,10 @@ function render() {
     ? `Fighting in ${zone.name}. ${zone.theme}`
     : `Battle is paused. Current zone: ${zone.name} — ${zone.theme}`;
 
+  const offlineReport = document.querySelector('#offlineReport');
+  offlineReport.hidden = !state.lastOfflineReport;
+  offlineReport.innerHTML = offlineReportCard(state.lastOfflineReport);
+
   document.querySelector('#battleStats').innerHTML = [
     stat('Hero HP', hpText),
     stat('Enemy', enemyText),
@@ -1337,6 +1459,8 @@ function render() {
     stat('Auto salvage', state.autoSalvageBelow === 'none' ? 'Off' : `Below ${TIERS[state.autoSalvageBelow].name}`),
     stat('Offline cap', '8 hours')
   ].join('');
+
+  document.querySelector('#zoneMasteryList').innerHTML = MASTERY_TIERS.map((tier, index) => masteryCard(zone, tier, index)).join('');
 
   document.querySelector('#questList').innerHTML = groupedQuestCards();
   document.querySelector('#shopList').innerHTML = SHOP_ITEMS.map(shopCard).join('');
@@ -1461,6 +1585,22 @@ function bindUi() {
 
   document.querySelector('#bossButton').addEventListener('click', () => {
     startBossFight();
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#offlineReport').addEventListener('click', event => {
+    if (event.target.id !== 'dismissOfflineReport') return;
+    state.lastOfflineReport = null;
+    saveGame();
+    render();
+  });
+
+  document.querySelector('#zoneMasteryList').addEventListener('click', event => {
+    const zoneId = event.target.dataset.claimMastery;
+    const tierIndex = Number(event.target.dataset.masteryTier);
+    if (!zoneId || !Number.isFinite(tierIndex)) return;
+    claimMastery(zoneId, tierIndex);
     saveGame();
     render();
   });
