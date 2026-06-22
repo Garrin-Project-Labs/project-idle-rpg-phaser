@@ -1,7 +1,10 @@
 const SAVE_KEY = 'idle-rpg-phaser-save-v1';
-const SAVE_VERSION = 11;
-const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
+const SAVE_VERSION = 12;
 const TICK_MS = 1000;
+const BASE_OFFLINE_CAP_MS = 2 * 60 * 60 * 1000;
+const MAX_OFFLINE_KILLS = 300;
+const OFFLINE_GOLD_JUNK_MULTIPLIER = 0.25;
+const OFFLINE_EXP_MULTIPLIER = 0.35;
 const REST_HEAL_COOLDOWN_MS = 30 * 1000;
 const MINUTE_MS = 60 * 1000;
 const MAX_WEAPONS = 14;
@@ -921,10 +924,12 @@ function maybeDropEquipment(zone, multiplier = 1, tracker = null) {
 
 function gainRewards(enemy, multiplier = 1, tracker = null) {
   const zone = currentZone();
-  const rewardMultiplier = multiplier * (isBuffActive('junk-magnet') ? 1.25 : 1);
-  const exp = Math.floor(enemy.exp * multiplier);
-  const gold = Math.floor(enemy.gold * rewardMultiplier);
-  const junk = Math.max(0, Math.floor(enemy.junk * rewardMultiplier));
+  const expMultiplier = tracker?.expMultiplier ?? multiplier;
+  const currencyMultiplier = (tracker?.currencyMultiplier ?? multiplier) * (isBuffActive('junk-magnet') ? 1.25 : 1);
+  const dropMultiplier = tracker?.dropMultiplier ?? multiplier;
+  const exp = Math.floor(enemy.exp * expMultiplier);
+  const gold = Math.floor(enemy.gold * currencyMultiplier);
+  const junk = Math.max(0, Math.floor(enemy.junk * currencyMultiplier));
   state.exp += exp;
   state.gold += gold;
   state.junk += junk;
@@ -942,7 +947,7 @@ function gainRewards(enemy, multiplier = 1, tracker = null) {
   } else {
     state.zoneKills[zone.id] = zoneKills(zone.id) + 1;
     addLog(`Defeated ${enemy.name}: +${exp} EXP, +${gold} gold, +${junk} junk.`);
-    maybeDropEquipment(zone, multiplier, tracker);
+    maybeDropEquipment(zone, dropMultiplier, tracker);
     if (state.zoneKills[zone.id] === zone.bossKillsRequired) addLog(`Boss ready in ${zone.name}: ${zone.boss.name}.`);
   }
   checkLevelUps();
@@ -1153,19 +1158,38 @@ function battleTick(multiplier = 1, tracker = null) {
 }
 
 function applyOfflineProgress() {
-  const elapsed = Math.min(Date.now() - (state.lastSavedAt || Date.now()), OFFLINE_CAP_MS);
+  const roadBonus = donationBonus('road');
+  const offlineCapMs = BASE_OFFLINE_CAP_MS * (1 + Math.min(0.5, roadBonus));
+  const actualElapsed = Date.now() - (state.lastSavedAt || Date.now());
+  const elapsed = Math.min(actualElapsed, offlineCapMs);
   if (!state.battleRunning || elapsed < 5000) return;
-  const ticks = Math.floor(elapsed / TICK_MS);
-  const report = { minutes: Math.max(1, Math.floor(elapsed / 60000)), kills: 0, gold: 0, junk: 0, exp: 0, drops: 0, bestDrop: null };
+  const killCap = Math.floor(MAX_OFFLINE_KILLS * (1 + Math.min(0.5, roadBonus)));
+  const ticks = Math.min(Math.floor(elapsed / TICK_MS), killCap);
+  const report = {
+    minutes: Math.max(1, Math.floor(actualElapsed / 60000)),
+    creditedMinutes: Math.max(1, Math.floor(elapsed / 60000)),
+    kills: 0,
+    gold: 0,
+    junk: 0,
+    exp: 0,
+    drops: 0,
+    bestDrop: null,
+    capped: ticks >= killCap,
+    capHours: Math.round((offlineCapMs / (60 * 60 * 1000)) * 10) / 10,
+    killCap,
+    expMultiplier: OFFLINE_EXP_MULTIPLIER,
+    currencyMultiplier: OFFLINE_GOLD_JUNK_MULTIPLIER,
+    dropMultiplier: OFFLINE_EXP_MULTIPLIER
+  };
 
   for (let i = 0; i < ticks; i++) {
-    battleTick(0.85 * (1 + donationBonus('road')), report);
+    battleTick(1, report);
     if (!state.battleRunning) break;
   }
 
   if (report.kills > 0 || report.exp > 0 || report.drops > 0) {
     state.lastOfflineReport = report;
-    addLog(`While you were away ${report.minutes}m, battle kept running: ${report.kills} kills, +${report.gold} gold, +${report.junk} junk.`);
+    addLog(`While you were away ${report.minutes}m, offline battle credited ${report.creditedMinutes}m: ${report.kills} kills, +${report.gold} gold, +${report.junk} junk.`);
   }
 }
 
@@ -1293,11 +1317,15 @@ function masteryCard(zone, tier, tierIndex) {
 function offlineReportCard(report) {
   if (!report) return '';
   const best = report.bestDrop ? `<small>Best drop: ${TIERS[report.bestDrop.tier]?.name || ''} ${report.bestDrop.itemName || report.bestDrop.name} (${report.bestDrop.text})</small>` : '<small>No gear drops this time.</small>';
+  const credited = report.creditedMinutes ? `<small>Credited offline time: ${report.creditedMinutes}m${report.minutes && report.minutes !== report.creditedMinutes ? ` of ${report.minutes}m away` : ''}.</small>` : '';
+  const capText = report.capped ? `<small>Offline cap reached: ${report.killCap || MAX_OFFLINE_KILLS} kills over ${report.capHours || 2}h cap.</small>` : '';
   return `
     <div>
       <div class="quest-title-row"><strong>Welcome back report</strong><button class="secondary mini-button" id="dismissOfflineReport">Dismiss</button></div>
       <small>${report.minutes}m away · ${report.kills || 0} kills · +${report.gold || 0} gold · +${report.junk || 0} junk · +${report.exp || 0} EXP · ${report.drops || 0} drops</small>
+      ${credited}
       ${best}
+      ${capText}
     </div>`;
 }
 
@@ -1457,7 +1485,7 @@ function render() {
     stat('Armor space', `${state.armors.length}/${state.maxArmors || MAX_ARMORS}`),
     stat('Accessory space', `${state.accessories.length}/${state.maxAccessories || MAX_ACCESSORIES}`),
     stat('Auto salvage', state.autoSalvageBelow === 'none' ? 'Off' : `Below ${TIERS[state.autoSalvageBelow].name}`),
-    stat('Offline cap', '8 hours')
+    stat('Offline cap', '2 hours · 300 kills')
   ].join('');
 
   document.querySelector('#zoneMasteryList').innerHTML = MASTERY_TIERS.map((tier, index) => masteryCard(zone, tier, index)).join('');
