@@ -2,7 +2,8 @@ directory:
   listed: true
   title: "Idle RPG Phaser"
   description: "Browser idle RPG prototype built with Phaser."
-  thumbnail: "docs/assets/production/town-hub-background.png"
+  thumbnail: "docs/assets/thumbnails/idle-rpg-phaser.png"
+  thumbnail: "docs/assets/thumbnails/idle-rpg-phaser.png"
   tags: [game, rpg, phaser]
   status: "live"
   sortOrder: 1000
